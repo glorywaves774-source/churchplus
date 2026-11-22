@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Church website{% endblock %}
+{% block content %}
+{% call ui.page_header('Church website', 'A simple, mobile-friendly site for your church') %}
+  {% if cfg.enabled %}<a class="btn" href="{{ url }}" rel="noopener" target="_blank">{{ icon('external-link', 17) }}<span>Open website</span></a>{% endif %}
+{% endcall %}
+<div class="grid grid-main-side">
+  <form method="post" class="stack" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {% call ui.card('Website') %}
+    <div class="form-grid">
+      <label class="check span-2"><input type="checkbox" name="enabled" value="y"{% if cfg.enabled %} checked{% endif %}> The website is live</label>
+      {{ ui.input('headline', 'Welcome line', cfg.headline, span=True, placeholder='e.g. A family of faith in the heart of Accra') }}
+      <div class="field span-2"><label class="label" for="f-about">About the church</label><textarea class="textarea" id="f-about" name="about">{{ cfg.about }}</textarea></div>
+      <div class="field span-2"><label class="label" for="f-giving_text">How to give</label><textarea class="textarea" id="f-giving_text" name="giving_text" placeholder="e.g. MTN MoMo: 024 000 0000 (Grace Chapel). Bank: GCB, account 1234567890.">{{ cfg.giving_text }}</textarea><div class="help">Leave empty to hide the Give page.</div></div>
+    </div>
+    {% endcall %}
+    {% call ui.card('Show on the website') %}
+    <div class="stack">
+      <label class="check"><input type="checkbox" name="show_service_times" value="y"{% if cfg.show_service_times %} checked{% endif %}> Service times (from your service types)</label>
+      <label class="check"><input type="checkbox" name="show_events" value="y"{% if cfg.show_events %} checked{% endif %}> Events marked "Show on the church website"</label>
+      <label class="check"><input type="checkbox" name="show_sermons" value="y"{% if cfg.show_sermons %} checked{% endif %}> Sermons shown to "Everyone"</label>
+      <label class="check"><input type="checkbox" name="visitor_form" value="y"{% if cfg.visitor_form %} checked{% endif %}> "I'm new" form (adds a first-timer to Visitors)</label>
+      <label class="check"><input type="checkbox" name="prayer_form" value="y"{% if cfg.prayer_form %} checked{% endif %}> Prayer request form (goes to Prayer)</label>
+    </div>
+    {% endcall %}
+    {% if can('website.edit') %}<div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button></div>{% endif %}
+  </form>
+  <div class="stack">
+    {% call ui.card('Address') %}<p class="break-all">{{ url }}</p><p class="help">Church name, address, phone and logo come from Church settings.</p>{% endcall %}
+    {% call ui.card('On the website now') %}
+      <dl class="kv"><dt>Public events</dt><dd>{{ counts.events }}</dd><dt>Public sermons</dt><dd>{{ counts.sermons }}</dd><dt>Public announcements</dt><dd>{{ counts.announcements }}</dd></dl>
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

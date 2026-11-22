@@ -1,0 +1,22 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Calendar{% endblock %}
+{% block content %}
+{% call ui.page_header(month.strftime('%B %Y'), 'Programme calendar') %}
+  <a class="btn btn-icon" href="{{ url_for('events.index', view='calendar', month=prev_m.strftime('%Y-%m')) }}" aria-label="Previous month">{{ icon('chevron-left', 18) }}</a>
+  <a class="btn" href="{{ url_for('events.index', view='calendar') }}">Today</a>
+  <a class="btn btn-icon" href="{{ url_for('events.index', view='calendar', month=next_m.strftime('%Y-%m')) }}" aria-label="Next month">{{ icon('chevron-right', 18) }}</a>
+  {{ ui.button('List', 'list', href=url_for('events.index')) }}
+{% endcall %}
+<section class="card calendar">
+  <div class="cal-grid" role="grid" aria-label="{{ month.strftime('%B %Y') }}">
+    {% for d in ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'] %}<div class="cal-head" role="columnheader">{{ d }}</div>{% endfor %}
+    {% for day in days %}
+    <div class="cal-day{% if day.month != month.month %} other{% endif %}{% if day == today %} today{% endif %}" role="gridcell">
+      <span class="cal-num">{{ day.day }}</span>
+      {% for e in by_day.get(day, []) %}<a class="cal-event{% if e.status.value == 'cancelled' %} cancelled{% endif %}" href="{{ url_for('events.detail', public_id=e.public_id) }}" title="{{ e.title }}">{{ e.starts_at.strftime('%H:%M') }} {{ e.title }}</a>{% endfor %}
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Journals{% endblock %}
+{% block content %}
+{% call ui.page_header('Journals', 'Every entry in the books, newest first.') %}
+  {% if can('accounting.create') %}{{ ui.button('Journal entry', 'plus', 'primary', href=url_for('accounting.new_journal')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  {{ ui.filter_bar(url_for('accounting.journals'), q, 'Number, description or reference', filters=[('source', 'Source', [('manual','Manual'),('opening','Opening balances'),('contribution','Giving'),('expense','Vouchers'),('payment','Payments'),('transfer','Transfers'),('reversal','Reversals')], params.get('source', ''))]) }}
+  {% if page.items %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Journal</th><th>Date</th><th>Description</th><th>Source</th><th class="col-num">Amount</th></tr></thead>
+    <tbody>{% for e in page.items %}<tr>
+      <td class="nowrap"><a href="{{ url_for('accounting.journal', public_id=e.public_id) }}">{{ e.number }}</a>{% if e.status.value == 'void' %} {{ ui.badge('Reversed', '') }}{% endif %}</td>
+      <td class="nowrap">{{ e.entry_date.strftime('%d %b %Y') }}</td>
+      <td class="wrap">{{ e.description }}</td>
+      <td class="nowrap">{{ e.source.value|capitalize }}</td>
+      <td class="num">{{ e.total|money(plain=True) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {{ ui.pagination(page, 'accounting.journals', params) }}
+  {% else %}{{ ui.empty_state('No entries found', icon_name='book-open') }}{% endif %}
+</section>
+{% endblock %}

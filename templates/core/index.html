@@ -1,0 +1,49 @@
+{% extends "layouts/base.html" %}
+{% block title %}Church management, made simple{% endblock %}
+{% block body_class %}page-public{% endblock %}
+{% block body %}
+<header class="public-bar glass">
+  <a class="brand" href="{{ url_for('core.index') }}">
+    {% include "layouts/_brand.html" %}
+  </a>
+  <div class="public-actions">
+    {% include "layouts/_theme_toggle.html" %}
+    {% if current_user.is_authenticated %}
+      <a class="btn btn-primary" href="{{ url_for('dashboard.index') }}">{{ icon('layout-dashboard', 17) }}<span>Open dashboard</span></a>
+    {% else %}
+      <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
+      <a class="btn btn-primary hide-phone" href="{{ url_for('auth.register') }}">Start free trial</a>
+    {% endif %}
+  </div>
+</header>
+
+<main class="public-main">
+  <section class="hero glass">
+    <p class="eyebrow">Church management and administration</p>
+    <h1>One secure home for your members, finances, services and ministries.</h1>
+    <p class="lead">ChurchPlus gives every church its own private workspace, from a single assembly to a denomination with many branches.</p>
+    <div class="cluster">
+      <a class="btn btn-primary" href="{{ url_for('auth.register') }}">{{ icon('sparkles', 17) }}<span>Register your church</span></a>
+      <a class="btn" href="{{ url_for('auth.login') }}">Sign in</a>
+    </div>
+  </section>
+
+  <section class="feature-grid" aria-label="What ChurchPlus covers">
+    {% for title, text in [
+      ("Members and visitors", "Profiles, families, first-timers and follow-up."),
+      ("Attendance and services", "Sunday, midweek and special programmes."),
+      ("Finance and accounting", "Tithes, offerings, budgets and double-entry books."),
+      ("Ministries and staff", "Departments, clergy, volunteers and events."),
+    ] %}
+    <article class="feature glass">
+      <h2>{{ title }}</h2>
+      <p>{{ text }}</p>
+    </article>
+    {% endfor %}
+  </section>
+</main>
+
+<footer class="public-footer">
+  © {{ COMPANY_NAME }}
+</footer>
+{% endblock %}

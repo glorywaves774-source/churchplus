@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Prayer requests{% endblock %}
+{% block content %}
+{% set cat_options = [] %}{% for c in categories %}{% set _ = cat_options.append((c, c)) %}{% endfor %}
+{% call ui.page_header('Prayer requests') %}
+  {% if can('prayer.create') %}{{ ui.button('New request', 'plus', 'primary', href=url_for('prayer.create')) }}{% endif %}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('New', counts.open, 'inbox', 'info', href=url_for('prayer.index', status='open')) }}
+  {{ ui.stat_card('Being prayed for', counts.praying, 'heart', 'gold', href=url_for('prayer.index', status='praying')) }}
+  {{ ui.stat_card('Answered', counts.answered, 'sparkles', 'success', href=url_for('prayer.index', status='answered')) }}
+  {{ ui.stat_card('Assigned to me', counts.mine, 'user-check', '', href=url_for('prayer.index', mine=1)) }}
+</div>
+<section class="card">
+  {{ ui.filter_bar(url_for('prayer.index'), q, 'Search requests or names', [('status', 'Status', [('active', 'Open and praying'), ('open', 'New'), ('praying', 'Praying'), ('answered', 'Answered'), ('closed', 'Closed'), ('all', 'Every request')], status), ('category', 'Category', cat_options, category)]) }}
+  {% if page.items %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Received</th><th>From</th><th>Request</th><th>Category</th><th>Assigned to</th><th>Status</th></tr></thead>
+    <tbody>{% for p in page.items %}<tr>
+      <td class="nowrap">{{ p.created_at.strftime('%d %b %Y') }}</td>
+      <td class="wrap"><a class="person-name" href="{{ url_for('prayer.detail', public_id=p.public_id) }}" translate="no">{{ p.display_name }}</a>{% if p.is_confidential %}<div class="person-sub">{{ icon('lock', 12) }} Confidential</div>{% endif %}</td>
+      <td class="wrap">{{ p.request|truncate(90) }}</td>
+      <td class="nowrap">{{ p.category }}</td>
+      <td class="wrap" translate="no">{{ p.assigned_to.display_name if p.assigned_to else (p.team.name if p.team else '—') }}</td>
+      <td>{{ ui.badge(p.status.value, {'open': 'info', 'praying': 'warning', 'answered': 'success', 'closed': ''}[p.status.value]) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {{ ui.pagination(page, 'prayer.index', params) }}
+  {% else %}{{ ui.empty_state('No prayer requests here', icon_name='heart') }}{% endif %}
+</section>
+{% endblock %}

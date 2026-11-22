@@ -1,0 +1,28 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit sermon' if s else 'Add sermon' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit ' ~ s.title if s else 'Add a sermon') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('Sermon') %}
+  <div class="form-grid">
+    {{ ui.input('title', 'Title', form.get('title', s.title if s else ''), required=True, span=True) }}
+    {{ ui.input('preacher', 'Preacher', form.get('preacher', s.preacher if s else ''), required=True) }}
+    {{ ui.input('preached_on', 'Date preached', form.get('preached_on', s.preached_on.isoformat() if s else today.isoformat()), 'date', required=True) }}
+    {{ ui.input('series', 'Series', form.get('series', s.series or '' if s else ''), placeholder='e.g. Faith that works') }}
+    {{ ui.input('category', 'Category', form.get('category', s.category or '' if s else ''), placeholder='e.g. Teaching, Evangelism') }}
+    {{ ui.input('scripture', 'Scripture', form.get('scripture', s.scripture or '' if s else ''), span=True, placeholder='e.g. James 2:14-26') }}
+    {{ ui.input('video_url', 'Video link', form.get('video_url', s.video_url or '' if s else ''), 'url', placeholder='https://youtube.com/…') }}
+    {{ ui.input('audio_url', 'Audio link', form.get('audio_url', s.audio_url or '' if s else ''), 'url', placeholder='https://…') }}
+    {{ ui.select('visibility', [('staff', 'Church staff only'), ('members', 'Members (member portal)'), ('public', 'Everyone (church website)')], 'Who can see it', form.get('visibility', s.visibility.value if s else 'members')) }}
+    <div class="field span-2"><label class="label" for="f-summary">Summary</label><textarea class="textarea" id="f-summary" name="summary">{{ form.get('summary', s.summary or '' if s else '') }}</textarea></div>
+    <div class="field span-2"><label class="label" for="f-notes">Sermon notes</label><textarea class="textarea textarea-lg" id="f-notes" name="notes">{{ form.get('notes', s.notes or '' if s else '') }}</textarea></div>
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('sermons.detail', public_id=s.public_id) if s else url_for('sermons.index') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

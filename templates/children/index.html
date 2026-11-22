@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Children and youth{% endblock %}
+{% block content %}
+{% call ui.page_header('Children and youth') %}
+  {{ ui.button('Classes and teachers', 'school', href=url_for('children.classes')) }}
+  {% if can('children.approve') %}{{ ui.button('Safeguarding', 'shield-alert', href=url_for('children.safeguarding')) }}{% endif %}
+  {% if can('children.create') %}{{ ui.button('Register a child', 'plus', 'primary', href=url_for('children.register')) }}{% endif %}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Children registered', children|length if not q and not cls else '—', 'users', 'info') }}
+  {{ ui.stat_card('In class now', open_ids|length, 'log-in', 'success', note=(today|length) ~ ' checked in today') }}
+  {{ ui.stat_card('Teachers not cleared', uncleared, 'shield-check', 'warning' if uncleared else '', href=url_for('children.classes')) }}
+  {% if incidents is not none %}{{ ui.stat_card('Open safeguarding concerns', incidents, 'shield-alert', 'danger' if incidents else '', href=url_for('children.safeguarding')) }}
+  {% else %}{{ ui.stat_card('Under-18s without a profile', unregistered, 'user-plus', '', href=url_for('children.register') if can('children.create') else None) }}{% endif %}
+</div>
+<div class="grid grid-main-side">
+  <section class="card">
+    {% set co = [] %}{% for k in classes %}{% set _ = co.append((k.public_id, k.name)) %}{% endfor %}
+    {{ ui.filter_bar(url_for('children.index'), q, 'Search children', [('class', 'Class', co, cls)]) }}
+    {% if children %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Child</th><th class="col-num">Age</th><th>Class</th><th>Alerts</th><th>Today</th></tr></thead>
+      <tbody>{% for c in children %}<tr>
+        <td class="wrap"><a class="person-name" href="{{ url_for('children.profile', public_id=c.public_id) }}" translate="no">{{ c.member.display_name }}</a><div class="person-sub">{{ c.member.membership_number }}</div></td>
+        <td class="num">{{ c.member.age if c.member.age is not none else '—' }}</td>
+        <td class="nowrap">{{ c.child_class.name if c.child_class else '—' }}</td>
+        <td class="wrap">{% if c.allergies %}{{ ui.badge('Allergy', 'danger') }} {% endif %}{% if c.special_needs %}{{ ui.badge('Needs', 'warning') }} {% endif %}{% if not c.photo_consent %}{{ ui.badge('No photos', '') }}{% endif %}</td>
+        <td>{% if c.id in open_ids %}{{ ui.badge('In class', 'success') }}{% else %}—{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No children found', 'Register a child from their membership record to start secure check-in.', 'users') }}{% endif %}
+  </section>
+  {% call ui.card("Today's check-ins", flush=True) %}
+    {% if today %}<ul class="feed">{% for ci in today %}<li><span class="feed-icon">{{ icon('log-out' if ci.checked_out_at else 'log-in', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('children.profile', public_id=ci.child.public_id) }}" translate="no">{{ ci.child.member.display_name }}</a><div class="feed-time">{{ ci.child_class.name if ci.child_class else '' }} · in {{ ci.checked_in_at|localtime('%H:%M') }}{% if ci.checked_out_at %} · collected {{ ci.checked_out_at|localtime('%H:%M') }} by <span translate="no">{{ ci.collected_by_name }}</span>{% endif %}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('Nobody checked in yet today', icon_name='log-in') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

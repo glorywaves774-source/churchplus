@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ service.title }}{% endblock %}
+{% block content %}
+{% call ui.page_header(service.title, service.service_date.strftime('%A %d %B %Y') ~ (', ' ~ service.start_time.strftime('%H:%M') if service.start_time else '') ~ (' · ' ~ service.branch.name if service.branch else '')) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print report</span></button>
+  {% if has_endpoint('attendance.register') and can('attendance.create') and service.status.value != 'cancelled' %}{{ ui.button('Take attendance', 'clipboard-check', 'primary', href=url_for('attendance.register', public_id=service.public_id)) }}{% endif %}
+  {% if can('worship.edit') %}{{ ui.button('Edit', 'edit', href=url_for('worship.edit', public_id=service.public_id)) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Total attendance', total or '—', 'users') }}
+  {{ ui.stat_card('Members marked present', counts.members, 'user-check', 'success') }}
+  {{ ui.stat_card('Visitors', counts.visitors or service.headcount_visitors or 0, 'user-plus', 'gold') }}
+  {% if service.headcount_total is not none %}{{ ui.stat_card('Headcount', service.headcount_total, 'clipboard-list', 'info', note=('Men ' ~ (service.headcount_men or 0) ~ ' · Women ' ~ (service.headcount_women or 0) ~ ' · Children ' ~ (service.headcount_children or 0))) }}{% endif %}
+</div>
+
+<div class="grid grid-main-side">
+  {% call ui.card('Order of service', flush=True) %}
+    {% if service.items %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Time</th><th>Activity</th><th>Led by</th></tr></thead>
+      <tbody>{% for it in service.items %}<tr><td class="nowrap">{{ it.start_time.strftime('%H:%M') if it.start_time else '' }}</td><td class="wrap">{{ it.activity }}</td><td class="wrap" translate="no">{{ it.led_by or '' }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No order of service yet', icon_name='list-checks') }}{% endif %}
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card('Details') %}
+      <dl class="kv">
+        <dt>Status</dt><dd>{{ ui.badge(service.status.value) }}</dd>
+        {% if service.service_type %}<dt>Type</dt><dd>{{ service.service_type.name }}</dd>{% endif %}
+        {% if service.department %}<dt>Department</dt><dd>{{ service.department.name }}</dd>{% endif %}
+        <dt>Theme</dt><dd>{{ service.theme or '—' }}</dd>
+        <dt>Preacher</dt><dd translate="no">{{ service.preacher or '—' }}</dd>
+        <dt>Sermon</dt><dd>{{ service.sermon_title or '—' }}</dd>
+        <dt>Readings</dt><dd>{{ service.scripture_readings or '—' }}</dd>
+        <dt>Worship leader</dt><dd translate="no">{{ service.worship_leader or '—' }}</dd>
+        <dt>Venue</dt><dd translate="no">{{ service.venue or '—' }}</dd>
+      </dl>
+      {% if service.notes %}<p class="help mt-4 mb-0">{{ service.notes }}</p>{% endif %}
+    {% endcall %}
+    {% call ui.card('Who is serving', flush=True) %}
+      {% if service.assignments %}
+      <ul class="feed">{% for a in service.assignments %}<li><span class="feed-icon">{{ icon('user-check', 16) }}</span><div><div class="feed-text" translate="no">{{ a.display }}</div><div class="feed-time">{{ a.role }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No duties assigned', icon_name='users') }}{% endif %}
+    {% endcall %}
+    {% if can('worship.delete') %}{{ ui.confirm_button(url_for('worship.delete', public_id=service.public_id), 'Delete service', 'This deletes the service and all attendance recorded for it.', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

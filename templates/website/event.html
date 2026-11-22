@@ -1,0 +1,26 @@
+{% extends "layouts/public.html" %}
+{% block title %}{{ e.title }} · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">{{ e.title }}</h1>
+<p class="site-sub">{{ e.starts_at.strftime('%A %d %B %Y, %H:%M') }}{% if e.venue %} · {{ e.venue }}{% endif %}</p>
+<div class="grid grid-main-side">
+  {% call ui.card() %}
+    {% if e.description %}<div class="prose pre-wrap">{{ e.description }}</div>{% else %}<p>All are welcome.</p>{% endif %}
+    {% if e.livestream_url %}<p class="mt-4"><a class="btn" href="{{ e.livestream_url }}" rel="noopener" target="_blank">{{ icon('video', 16) }}<span>Watch online</span></a></p>{% endif %}
+  {% endcall %}
+  {% if e.requires_registration and e.status.value == 'published' %}
+  {% call ui.card('Register') %}
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="hp" aria-hidden="true"><label>Leave empty <input name="website_url" tabindex="-1" autocomplete="off"></label></div>
+      {{ ui.input('name', 'Your name', required=True) }}
+      {{ ui.input('phone', 'Phone', type='tel', required=True) }}
+      {{ ui.input('email', 'Email (optional)', type='email') }}
+      {{ ui.input('guests', 'Extra guests', '0', 'number', attrs={'min': 0, 'max': 20}) }}
+      <button class="btn btn-primary" type="submit">{{ icon('calendar-check', 16) }}<span>Register</span></button>
+      <p class="help">We use your details only for this event.</p>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

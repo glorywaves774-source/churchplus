@@ -1,0 +1,22 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "accounting/_report.html" as rp with context %}
+{% block title %}Balance sheet{% endblock %}
+{% block content %}
+{{ rp.filters('accounting.balance_sheet', 'as_of', as_of=as_of) }}
+<section class="card report">
+  <div class="card-body">{{ rp.report_title('Statement of financial position', 'As at ' ~ as_of.strftime('%d %B %Y')) }}</div>
+  {% if not bs.balanced %}<div class="card-body">{{ ui.alert('Assets do not equal liabilities plus funds. Contact support.', 'danger') }}</div>{% endif %}
+  <div class="table-wrap"><table class="table statement">
+    {{ rp.section('Assets', bs.assets, 'Total assets', bs.total_assets) }}
+    {{ rp.section('Liabilities', bs.liabilities, 'Total liabilities', bs.total_liabilities) }}
+    <tbody>
+      <tr class="section-row"><th colspan="2">Funds</th></tr>
+      {% for r in bs.equity %}<tr><td class="wrap"><span class="code">{{ r.account.code }}</span> {{ r.account.name }}</td><td class="num">{{ r.amount|money(plain=True) }}</td></tr>{% endfor %}
+      <tr><td>Accumulated surplus / (deficit)</td><td class="num">{{ bs.surplus|money(plain=True) }}</td></tr>
+      <tr class="total-row"><td>Total funds</td><td class="num">{{ bs.total_equity|money(plain=True) }}</td></tr>
+    </tbody>
+    <tfoot><tr class="grand-row"><td>Total liabilities and funds</td><td class="num">{{ (bs.total_liabilities + bs.total_equity)|money }}</td></tr></tfoot>
+  </table></div>
+</section>
+{% endblock %}

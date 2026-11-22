@@ -1,0 +1,16 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "accounting/_report.html" as rp with context %}
+{% block title %}Trial balance{% endblock %}
+{% block content %}
+{{ rp.filters('accounting.trial_balance', 'as_of', as_of=as_of) }}
+<section class="card report">
+  <div class="card-body">{{ rp.report_title('Trial balance', 'As at ' ~ as_of.strftime('%d %B %Y')) }}</div>
+  {% if not tb.balanced %}<div class="card-body">{{ ui.alert('Debits and credits do not agree. Contact support.', 'danger') }}</div>{% endif %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Account</th><th class="col-num">Debit</th><th class="col-num">Credit</th></tr></thead>
+    <tbody>{% for r in tb.rows %}<tr><td class="wrap"><span class="code">{{ r.account.code }}</span> {{ r.account.name }}</td><td class="num">{{ r.debit|money(plain=True) if r.debit else '' }}</td><td class="num">{{ r.credit|money(plain=True) if r.credit else '' }}</td></tr>{% endfor %}</tbody>
+    <tfoot><tr class="total-row"><td>Total</td><td class="num">{{ tb.total_debit|money(plain=True) }}</td><td class="num">{{ tb.total_credit|money(plain=True) }}</td></tr></tfoot>
+  </table></div>
+</section>
+{% endblock %}

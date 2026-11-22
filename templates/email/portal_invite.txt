@@ -1,0 +1,12 @@
+Hello {{ member.first_name }},
+
+{{ church.name }} has opened the member portal for you. There you can see upcoming events and register, listen to sermons, see your giving statement, update your contact details and send prayer requests.
+
+{% if is_new %}Choose your password to get started (this link expires in 3 days):{% else %}Sign in with your existing ChurchPlus account, then choose {{ church.name }}:{% endif %}
+{{ link }}
+
+Tip: after signing in on your phone, choose "Install app" to add it to your home screen.
+
+If you were not expecting this email, you can ignore it.
+
+— {{ church.name }}, using ChurchPlus

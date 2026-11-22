@@ -1,0 +1,47 @@
+{#
+  Public church website shell. Desktop: links in the header. Phones: ☰ opens a drawer from
+  the left over a dimmed page (same behaviour as the app menu).
+#}
+{% extends "layouts/base.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% set site = g.site %}
+{% set links = [('Home', url_for('website.site_home'), 'home')] %}
+{% if g.site_cfg.show_events %}{% set _ = links.append(('Events', url_for('website.site_events'), 'calendar-days')) %}{% endif %}
+{% if g.site_cfg.show_sermons %}{% set _ = links.append(('Sermons', url_for('website.site_sermons'), 'book-open')) %}{% endif %}
+{% if g.site_cfg.visitor_form %}{% set _ = links.append(("I'm new", url_for('website.site_visitor'), 'user-plus')) %}{% endif %}
+{% if g.site_cfg.prayer_form %}{% set _ = links.append(('Prayer', url_for('website.site_prayer'), 'heart-handshake')) %}{% endif %}
+{% if g.site_cfg.giving_text %}{% set _ = links.append(('Give', url_for('website.site_give'), 'hand-coins')) %}{% endif %}
+{% block title %}{{ site.name }}{% endblock %}
+{% block body_class %}site-page{% endblock %}
+{% block body %}
+<a class="sr-only" href="#main">Skip to content</a>
+<aside class="sidebar site-drawer" id="sidebar" aria-label="Site menu">
+  <div class="sidebar-head">
+    <span class="brand" translate="no"><span class="site-mark">{{ site.name|initials }}</span><span class="brand-name">{{ site.name }}</span></span>
+    <button type="button" class="btn btn-icon sidebar-close" data-drawer-close aria-label="Close menu">{{ icon('x', 20) }}</button>
+  </div>
+  <nav class="sidebar-nav">
+    {% for label, url, ic in links %}<a class="nav-link" href="{{ url }}"{% if request.path == url %} aria-current="page"{% endif %}>{{ icon(ic, 19) }}<span class="nav-label">{{ label }}</span></a>{% endfor %}
+  </nav>
+</aside>
+<div class="drawer-backdrop" data-drawer-close aria-hidden="true"></div>
+<header class="site-header">
+  <button type="button" class="btn btn-ghost btn-icon menu-btn" data-drawer-open aria-controls="sidebar" aria-expanded="false" aria-label="Open menu">{{ icon('menu', 22) }}</button>
+  <a class="site-brand" href="{{ url_for('website.site_home') }}" translate="no">
+    {% if site.logo_key %}<img class="site-logo" src="{{ url_for('website.site_logo') }}" alt="" width="36" height="36">{% else %}<span class="site-mark">{{ site.name|initials }}</span>{% endif %}
+    <span>{{ site.name }}</span>
+  </a>
+  <nav class="site-nav" aria-label="Site">
+    {% for label, url, ic in links %}<a href="{{ url }}"{% if request.path == url %} aria-current="page"{% endif %}>{{ label }}</a>{% endfor %}
+  </nav>
+  {% include "layouts/_theme_toggle.html" %}
+</header>
+<main class="site-main" id="main" tabindex="-1">
+  {% block content %}{% endblock %}
+</main>
+<footer class="site-footer">
+  <div translate="no"><strong>{{ site.name }}</strong>{% if site.address_line1 or site.city %} · {{ [site.address_line1, site.city]|select|join(', ') }}{% endif %}</div>
+  <div>{% if site.phone %}<a href="tel:{{ site.phone }}">{{ site.phone }}</a>{% endif %}{% if site.phone and site.email %} · {% endif %}{% if site.email %}<a href="mailto:{{ site.email }}">{{ site.email }}</a>{% endif %}</div>
+  <div class="help">Powered by ChurchPlus</div>
+</footer>
+{% endblock %}

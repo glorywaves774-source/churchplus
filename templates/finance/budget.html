@@ -1,0 +1,68 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ b.name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(b.name, b.start_date.strftime('%d %b %Y') ~ ' – ' ~ b.end_date.strftime('%d %b %Y') ~ ' · budget versus actual') %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Income budget', report.summary.income.budget|money, 'trending-up') }}
+  {{ ui.stat_card('Income so far', report.summary.income.actual|money, 'hand-coins', 'success') }}
+  {{ ui.stat_card('Spending budget', report.summary.expense.budget|money, 'trending-down', 'gold') }}
+  {{ ui.stat_card('Spent so far', report.summary.expense.actual|money, 'receipt', 'danger') }}
+</div>
+
+{% for key, title in [('income', 'Income'), ('expense', 'Spending')] %}
+<section class="card mb-4">
+  <div class="card-header"><h3>{{ title }}</h3></div>
+  <div class="card-body flush">
+  {% if report.rows[key] %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Category</th><th class="col-num">Budget</th><th class="col-num">Actual</th><th class="col-num">{{ 'Ahead / behind' if key == 'income' else 'Remaining' }}</th><th>Used</th></tr></thead>
+    <tbody>{% for r in report.rows[key] %}<tr>
+      <td class="wrap">{{ r.line.account.name }}{% if r.line.department %}<div class="person-sub">{{ r.line.department.name }}</div>{% endif %}</td>
+      <td class="num">{{ r.budget|money(plain=True) }}</td>
+      <td class="num">{{ r.actual|money(plain=True) }}</td>
+      <td class="num {{ 'text-danger' if r.variance < 0 }}">{{ r.variance|money(plain=True) }}</td>
+      <td class="progress-cell">{% if r.percent is not none %}<progress class="progress" max="100" value="{{ [r.percent, 100]|min }}" aria-label="Used"></progress><span class="help">{{ r.percent }}%</span>{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}<p class="text-muted card-body mb-0">No {{ title|lower }} budget lines yet.</p>{% endif %}
+  </div>
+</section>
+{% endfor %}
+
+{% if can('finance.manage_settings') %}
+<form method="post" class="stack no-print" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="grid grid-2">
+    {% for title, accs in [('Income budget', income_accounts), ('Spending budget', expense_accounts)] %}
+    {% call ui.card(title, 'Leave empty for no budget.', flush=True) %}
+      <div class="table-wrap"><table class="table rows-table">
+        <tbody>{% for a in accs %}<tr><td class="wrap"><label for="amt_{{ a.public_id }}">{{ a.name }}</label></td><td><input class="input num-input" id="amt_{{ a.public_id }}" name="amt_{{ a.public_id }}" inputmode="decimal" placeholder="0.00" value="{{ '%.2f'|format(amounts[a.id]) if a.id in amounts else '' }}"></td></tr>{% endfor %}</tbody>
+      </table></div>
+    {% endcall %}
+    {% endfor %}
+  </div>
+  {% call ui.card('Department budgets', 'Spending by a department, tracked from vouchers tagged with that department.', flush=True) %}
+    <div class="table-wrap"><table class="table rows-table">
+      <thead><tr><th>Department</th><th>Category</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% for l in dept_lines %}<tr>
+          <td><select class="select" name="dl_department" aria-label="Department">{% for d in departments %}<option value="{{ d.public_id }}"{% if d.id == l.department_id %} selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></td>
+          <td><select class="select" name="dl_account" aria-label="Category">{% for a in expense_accounts %}<option value="{{ a.public_id }}"{% if a.id == l.account_id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></td>
+          <td><input class="input num-input" name="dl_amount" inputmode="decimal" value="{{ '%.2f'|format(l.amount) }}" aria-label="Amount"></td>
+        </tr>{% endfor %}
+        {% for i in range(3) %}<tr>
+          <td><select class="select" name="dl_department" aria-label="Department"><option value="">—</option>{% for d in departments %}<option value="{{ d.public_id }}">{{ d.name }}</option>{% endfor %}</select></td>
+          <td><select class="select" name="dl_account" aria-label="Category">{% for a in expense_accounts %}<option value="{{ a.public_id }}">{{ a.name }}</option>{% endfor %}</select></td>
+          <td><input class="input num-input" name="dl_amount" inputmode="decimal" placeholder="0.00" aria-label="Amount"></td>
+        </tr>{% endfor %}
+      </tbody>
+    </table></div>
+  {% endcall %}
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save budget</span></button></div>
+</form>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Service types{% endblock %}
+{% block content %}
+{{ ui.page_header('Service types', 'The regular gatherings of your church. Used as shortcuts when scheduling.') }}
+<div class="grid grid-main-side">
+  {% call ui.card(flush=True) %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Name</th><th>Kind</th><th>Usual day</th><th>Starts</th><th></th></tr></thead>
+    <tbody>
+      {% set days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+      {% for t in types %}
+      <tr>
+        <td class="wrap"><strong>{{ t.name }}</strong>{% if not t.is_active %} {{ ui.badge('Hidden', '') }}{% endif %}</td>
+        <td>{{ t.kind.value|capitalize }}</td>
+        <td class="nowrap">{{ days[t.weekday] if t.weekday is not none else 'Varies' }}</td>
+        <td class="nowrap">{{ t.start_time.strftime('%H:%M') if t.start_time else '—' }}</td>
+        <td class="col-actions"><form method="post" action="{{ url_for('worship.toggle_type', public_id=t.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost" type="submit">{{ 'Hide' if t.is_active else 'Show' }}</button></form></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% endcall %}
+  {% call ui.card('Add a service type') %}
+  <form method="post" class="stack" novalidate>
+    {{ form.csrf_token }}{{ ui.field(form.name, placeholder='e.g. Youth Service') }}{{ ui.field(form.kind) }}{{ ui.field(form.weekday) }}{{ ui.field(form.start_time) }}
+    <button class="btn btn-primary" type="submit">{{ icon('plus', 17) }}<span>Add</span></button>
+  </form>
+  {% endcall %}
+</div>
+{% endblock %}

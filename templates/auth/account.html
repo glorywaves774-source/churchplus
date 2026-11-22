@@ -1,0 +1,91 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}My account{% endblock %}
+{% block content %}
+{{ ui.page_header('My account', 'Your sign-in details and security. These apply to every church you belong to.') }}
+
+{% if not g.user.email_verified_at %}
+<div class="alert alert-warning mb-4" role="status">{{ icon('alert-triangle', 18) }}
+  <div class="alert-body"><strong>Please confirm your email address</strong>We sent a link to <span translate="no">{{ g.user.email }}</span>.
+    <form method="post" action="{{ url_for('auth.resend_verification') }}" class="mt-1"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ icon('send', 15) }}<span>Send again</span></button></form>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid grid-2 mb-4">
+  {% call ui.card('Your details') %}
+  <form method="post" class="form-grid" novalidate>
+    {{ profile.csrf_token }}<input type="hidden" name="action" value="profile">
+    {{ ui.field(profile.first_name) }}
+    {{ ui.field(profile.last_name) }}
+    <div class="field span-2"><span class="label">Email address</span><span class="input input-static" translate="no">{{ g.user.email }}{% if g.user.email_verified_at %} {{ ui.badge('Verified', 'success') }}{% endif %}</span></div>
+    {{ ui.field(profile.phone, span=True, icon_name='phone') }}
+    <div class="form-actions span-2"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save details</span></button></div>
+  </form>
+  {% endcall %}
+
+  {% call ui.card('Change password', 'Changing your password signs you out on your other devices.') %}
+  <form method="post" class="stack" novalidate>
+    {{ password.csrf_token }}<input type="hidden" name="action" value="password">
+    {{ ui.field(password.current, icon_name='lock') }}
+    {{ ui.field(password.password, icon_name='lock', help='At least 10 characters, mixing letters, numbers or symbols.') }}
+    {{ ui.field(password.confirm, icon_name='lock') }}
+    <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Change password</span></button></div>
+  </form>
+  {% endcall %}
+</div>
+
+<div class="grid grid-2 mb-4">
+  {% call ui.card('Two-step sign-in', 'Ask for a code from your phone as well as your password.') %}
+    {% if g.user.two_factor_enabled %}
+      <p>{{ ui.badge('On', 'success') }} {{ (g.user.recovery_codes or [])|length }} recovery codes left.</p>
+      <div class="cluster">
+        <button class="btn" data-modal-open="codes-modal">{{ icon('refresh-cw', 16) }}<span>New recovery codes</span></button>
+        <button class="btn btn-ghost" data-modal-open="disable-modal">{{ icon('x-circle', 16) }}<span>Turn off</span></button>
+      </div>
+    {% else %}
+      <p class="text-muted">Recommended for pastors, administrators and anyone who handles finances.</p>
+      <a class="btn btn-primary" href="{{ url_for('auth.two_factor_setup') }}">{{ icon('shield-check', 17) }}<span>Turn on two-step sign-in</span></a>
+    {% endif %}
+  {% endcall %}
+
+  {% call ui.card('Signed-in devices', 'Lost a phone or signed in on a shared computer?') %}
+    {{ ui.confirm_button(url_for('auth.sign_out_others'), 'Sign out all other devices', 'Every other browser and device signed in to your account will be signed out. This device stays signed in.', 'Sign out others', 'log-out', '', '', 'Sign out other devices?') }}
+  {% endcall %}
+</div>
+
+{% call ui.card('Recent sign-in activity', 'If you see something you do not recognise, change your password.', flush=True) %}
+  {% if logins %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When (UTC)</th><th>Activity</th><th>Device</th><th>IP address</th></tr></thead>
+      <tbody>
+        {% set labels = {'success': ('Signed in', 'success'), 'failed': ('Wrong password', 'danger'), 'two_factor_failed': ('Wrong code', 'danger'), 'locked': ('Blocked (too many attempts)', 'danger'), 'logout': ('Signed out', '')} %}
+        {% for e in logins %}
+        {% set label = labels.get(e.event, (e.event, '')) %}
+        <tr>
+          <td class="nowrap">{{ e.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td>{{ ui.badge(label[0], label[1]) }}</td>
+          <td class="wrap">{{ describe_agent(e.user_agent) }}</td>
+          <td class="nowrap" translate="no">{{ e.ip_address or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}{{ ui.empty_state('No sign-in activity yet', icon_name='history') }}{% endif %}
+{% endcall %}
+
+{% call ui.modal('disable-modal', 'Turn off two-step sign-in?', 'sm') %}
+<form method="post" action="{{ url_for('auth.two_factor_disable') }}">
+  <div class="modal-body">{{ confirm.csrf_token }}<p class="text-muted">Your account will be protected by your password only.</p>{{ ui.field(confirm.password, icon_name='lock') }}</div>
+  <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-danger">Turn off</button></div>
+</form>
+{% endcall %}
+{% call ui.modal('codes-modal', 'Generate new recovery codes?', 'sm') %}
+<form method="post" action="{{ url_for('auth.regenerate_recovery_codes') }}">
+  <div class="modal-body">{{ confirm.csrf_token }}<p class="text-muted">Your old recovery codes will stop working.</p>{{ ui.field(confirm.password, icon_name='lock') }}</div>
+  <div class="modal-foot"><button type="button" class="btn" data-modal-close>Cancel</button><button type="submit" class="btn btn-primary">Generate codes</button></div>
+</form>
+{% endcall %}
+{% endblock %}

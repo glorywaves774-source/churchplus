@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit visitor' if visitor else 'Register first-timer' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit visitor' if visitor else 'Register a first-timer', None if visitor else 'A follow-up is scheduled automatically two days after the visit.') }}
+<form method="post" novalidate class="stack">
+  {{ form.csrf_token }}
+  {% call ui.card('About them') %}
+  <div class="form-grid">
+    {{ ui.field(form.first_name) }}
+    {{ ui.field(form.last_name) }}
+    {{ ui.field(form.gender) }}
+    {{ ui.field(form.age_group) }}
+    {{ ui.field(form.phone, icon_name='phone') }}
+    {{ ui.field(form.email, icon_name='mail') }}
+    {{ ui.field(form.address) }}
+    {{ ui.field(form.city) }}
+    {{ ui.field(form.current_church, span=True) }}
+  </div>
+  {% endcall %}
+  {% call ui.card('Their visit') %}
+  <div class="form-grid">
+    {{ ui.field(form.first_visit_date) }}
+    {{ ui.field(form.service) }}
+    {{ ui.field(form.branch) }}
+    {{ ui.field(form.how_heard) }}
+    {{ ui.field(form.invited_by, placeholder='e.g. GCI-000124') }}
+    {{ ui.field(form.assigned_to) }}
+    {{ ui.field(form.wants_visit) }}
+    {{ ui.field(form.wants_membership) }}
+    {{ ui.field(form.prayer_request, span=True, help='Shared with the follow-up team. Use the prayer module for private requests.') }}
+    {{ ui.field(form.notes, span=True) }}
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('visitors.profile', public_id=visitor.public_id) if visitor else url_for('visitors.index') }}">Cancel</a>
+    {% if not visitor %}<button type="submit" class="btn" name="again" value="1">{{ icon('plus', 17) }}<span>Save and add another</span></button>{% endif %}
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

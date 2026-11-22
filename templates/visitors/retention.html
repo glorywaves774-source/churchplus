@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Visitor retention{% endblock %}
+{% block content %}
+{{ ui.page_header('Visitor retention', 'By month of first visit: how many came back and how many became members.') }}
+{% call ui.card() %}{{ ui.chart(chart, label='Visitor retention chart') }}{% endcall %}
+<section class="card mt-4">
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Month</th><th class="col-num">First-timers</th><th class="col-num">Came back</th><th class="col-num">Became members</th><th class="col-num">Conversion</th></tr></thead>
+    <tbody>{% for r in rows %}<tr><td class="nowrap">{{ r.month }}</td><td class="num">{{ r.first_timers }}</td><td class="num">{{ r.returned }}</td><td class="num">{{ r.converted }}</td><td class="num">{{ r.conversion_rate }}%</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

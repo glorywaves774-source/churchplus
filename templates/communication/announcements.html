@@ -1,0 +1,22 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Announcements{% endblock %}
+{% block content %}
+{% call ui.page_header('Announcements', 'Shown on the dashboard, the member portal and the church website') %}
+  {% if can('communication.create') %}{{ ui.button('New announcement', 'plus', 'primary', href=url_for('communication.new_announcement')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Announcement</th><th>Shown to</th><th>From</th><th>Until</th><th class="col-actions"></th></tr></thead>
+    <tbody>{% for a in rows %}<tr>
+      <td class="wrap"><span class="person-name">{% if a.is_pinned %}{{ icon('pin', 13) }} {% endif %}{{ a.title }}</span><div class="person-sub">{{ a.body|truncate(90) }}</div></td>
+      <td class="nowrap">{{ {'staff': 'Staff', 'members': 'Members', 'public': 'Everyone'}[a.audience.value] }}</td>
+      <td class="nowrap">{{ a.starts_on.strftime('%d %b %Y') }}</td>
+      <td class="nowrap">{{ a.ends_on.strftime('%d %b %Y') if a.ends_on else '—' }}{% if not a.is_current(today) %} {{ ui.badge('not showing', '') }}{% endif %}</td>
+      <td class="col-actions nowrap">{% if can('communication.create') %}<a class="btn btn-ghost btn-icon btn-sm" href="{{ url_for('communication.edit_announcement', public_id=a.public_id) }}" aria-label="Edit">{{ icon('edit', 15) }}</a>{% endif %}{% if can('communication.delete') %}{{ ui.confirm_button(url_for('communication.delete_announcement', public_id=a.public_id), '', 'Delete this announcement?', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ ui.empty_state('No announcements yet', icon_name='megaphone') }}{% endif %}
+</section>
+{% endblock %}

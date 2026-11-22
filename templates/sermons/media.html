@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Media library{% endblock %}
+{% block content %}
+{{ ui.page_header('Media library', 'Recordings, videos, bulletins and pictures') }}
+<div class="grid grid-main-side">
+  <section class="card">
+    <div class="filter-bar">
+      <a class="chip" href="{{ url_for('sermons.media') }}" aria-pressed="{{ 'false' if kind else 'true' }}">All</a>
+      {% for k in kinds %}<a class="chip" href="{{ url_for('sermons.media', kind=k.value) }}" aria-pressed="{{ 'true' if k.value == kind else 'false' }}">{{ k.value|capitalize }}</a>{% endfor %}
+    </div>
+    {% if rows %}{% with items=rows, show_sermon=True %}{% include "sermons/_media_list.html" %}{% endwith %}
+    {% else %}{{ ui.empty_state('Nothing here yet', icon_name='image') }}{% endif %}
+  </section>
+  {% if can('sermons.create') %}{% call ui.card('Add media') %}{% with sermon=None %}{% include "sermons/_upload.html" %}{% endwith %}{% endcall %}{% endif %}
+</div>
+{% endblock %}

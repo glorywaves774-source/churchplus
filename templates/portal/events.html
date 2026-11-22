@@ -1,0 +1,26 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Events{% endblock %}
+{% block content %}
+{{ ui.page_header('Events', 'Register for programmes at ' ~ g.tenant.name) }}
+{% if rows %}
+<div class="grid grid-2">
+  {% for e in rows %}{% set r = regs.get(e.id) %}
+  {% call ui.card(e.title, e.starts_at.strftime('%A %d %B, %H:%M') ~ (' · ' ~ e.venue if e.venue else '')) %}
+    {% if e.description %}<p class="pre-wrap">{{ e.description|truncate(300) }}</p>{% endif %}
+    {% if e.livestream_url %}<p><a href="{{ e.livestream_url }}" rel="noopener" target="_blank">{{ icon('video', 14) }} Watch online</a></p>{% endif %}
+    {% if e.requires_registration %}
+      {% if r and r.status.value != 'cancelled' %}
+        <p>{{ ui.badge('You are registered' if r.status.value == 'registered' else 'On the waiting list', 'success' if r.status.value == 'registered' else 'warning') }}</p>
+        <form method="post" action="{{ url_for('portal.event_action', public_id=e.public_id, action='cancel') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ icon('x', 15) }}<span>Cancel my place</span></button></form>
+      {% else %}
+        <form method="post" action="{{ url_for('portal.event_action', public_id=e.public_id, action='register') }}" class="cluster"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <label class="label" for="g-{{ e.public_id }}">Guests</label><input class="input input-narrow" id="g-{{ e.public_id }}" name="guests" type="number" min="0" max="20" value="0" inputmode="numeric">
+          <button class="btn btn-primary btn-sm" type="submit">{{ icon('calendar-check', 15) }}<span>Register</span></button></form>
+      {% endif %}
+    {% else %}<p class="help">No registration needed. Just come!</p>{% endif %}
+  {% endcall %}
+  {% endfor %}
+</div>
+{% else %}<section class="card">{{ ui.empty_state('No upcoming events', icon_name='calendar-days') }}</section>{% endif %}
+{% endblock %}

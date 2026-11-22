@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Roles{% endblock %}
+{% block content %}
+{% call ui.page_header('Roles', 'What each role can see and do in ' ~ g.tenant.name ~ '.') %}
+  {% if can('users.manage_settings') %}{{ ui.button('New role', 'plus', 'primary', href=url_for('auth.role_create')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead><tr><th data-sort="text">Role</th><th data-sort="number" class="col-num">Permissions</th><th data-sort="number" class="col-num">People</th><th>Type</th><th class="col-actions"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        {% for r in roles %}
+        <tr>
+          <td class="wrap"><strong>{{ r.name }}</strong><br><span class="help">{{ r.description or '' }}</span></td>
+          <td class="num">{{ r.permissions|length }} / {{ total }}</td>
+          <td class="num">{{ counts.get(r.id, 0) }}</td>
+          <td class="nowrap">{{ ui.badge('Built-in' if r.is_system else 'Custom', '' if r.is_system else 'accent') }}{% if r.is_branch_scoped %} {{ ui.badge('Own branch', 'info') }}{% endif %}</td>
+          <td class="col-actions">
+            {% if can('users.manage_settings') and r.slug != 'church_owner' %}
+            <div class="cluster">
+              <a class="btn btn-sm" href="{{ url_for('auth.role_edit', public_id=r.public_id) }}">{{ icon('edit', 15) }}<span>Edit</span></a>
+              {% if not r.is_system %}{{ ui.confirm_button(url_for('auth.role_delete', public_id=r.public_id), 'Delete', 'The role “' ~ r.name ~ '” will be deleted.', 'Delete role', 'trash-2', 'ghost', 'sm') }}{% endif %}
+            </div>
+            {% elif r.slug == 'church_owner' %}<span class="help">Full access, locked</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

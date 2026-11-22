@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit ' ~ staff.display_name if staff else 'Add clergy, staff or volunteer' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit ' ~ staff.display_name if staff else 'Add clergy, staff or volunteer', staff.staff_number if staff else 'A staff number is assigned automatically.') }}
+<form method="post" novalidate class="stack">
+  {{ form.csrf_token }}
+  {% call ui.card('Person') %}
+  <div class="form-grid">
+    {{ ui.field(form.category) }}
+    {{ ui.field(form.member_number, placeholder='e.g. GCI-000124') }}
+    {{ ui.field(form.title) }}
+    {{ ui.field(form.gender) }}
+    {{ ui.field(form.first_name) }}
+    {{ ui.field(form.last_name) }}
+    {{ ui.field(form.date_of_birth) }}
+    {{ ui.field(form.phone, icon_name='phone') }}
+    {{ ui.field(form.email, icon_name='mail') }}
+    {{ ui.field(form.address) }}
+    {{ ui.field(form.emergency_name) }}
+    {{ ui.field(form.emergency_phone, icon_name='phone') }}
+  </div>
+  {% endcall %}
+  {% call ui.card('Role and employment') %}
+  <div class="form-grid">
+    {{ ui.field(form.position) }}
+    {{ ui.field(form.department) }}
+    {{ ui.field(form.branch) }}
+    {{ ui.field(form.employment_type) }}
+    {{ ui.field(form.status) }}
+    {{ ui.field(form.annual_leave_days) }}
+    {{ ui.field(form.start_date) }}
+    {{ ui.field(form.end_date) }}
+    {{ ui.field(form.ordination_date) }}
+    {{ ui.field(form.ghana_card_number, placeholder='GHA-000000000-0') }}
+    {{ ui.field(form.ssnit_number) }}
+    {{ ui.field(form.notes, span=True) }}
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('clergy.profile', public_id=staff.public_id) if staff else url_for('clergy.index') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

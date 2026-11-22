@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Two-step sign-in{% endblock %}
+{% block content %}
+{{ ui.page_header('Turn on two-step sign-in', 'Use an authenticator app such as Google Authenticator, Microsoft Authenticator or Authy.') }}
+<div class="grid grid-2">
+  {% call ui.card('1. Scan this code') %}
+    <div class="qr-box">{{ qr|safe }}</div>
+    <p class="help mt-4">Can't scan? Enter this key in the app:</p>
+    <p class="secret-key" translate="no">{{ secret|batch(4)|map('join')|join(' ') }}</p>
+  {% endcall %}
+  {% call ui.card('2. Enter the 6-digit code') %}
+    <form method="post" class="stack" novalidate>
+      {{ form.csrf_token }}
+      {{ ui.field(form.code, icon_name='lock', placeholder='123 456') }}
+      <div class="form-actions">
+        <a class="btn" href="{{ url_for('auth.account') }}">Cancel</a>
+        <button class="btn btn-primary" type="submit">{{ icon('check', 17) }}<span>Turn on</span></button>
+      </div>
+    </form>
+  {% endcall %}
+</div>
+{% endblock %}

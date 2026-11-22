@@ -1,0 +1,18 @@
+{% extends "layouts/public.html" %}
+{% block title %}Prayer request · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">Send a prayer request</h1>
+<p class="site-sub">Our prayer team will pray with you. Leave contact details if you would like a call.</p>
+<form method="post" class="card site-form stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="hp" aria-hidden="true"><label>Leave empty <input name="website_url" tabindex="-1" autocomplete="off"></label></div>
+  {{ ui.input('name', 'Your name (optional)') }}
+  {{ ui.input('phone', 'Phone (optional)', type='tel') }}
+  {{ ui.input('email', 'Email (optional)', type='email') }}
+  <div class="field"><label class="label" for="f-request">Prayer request</label><textarea class="textarea" id="f-request" name="request" required></textarea></div>
+  <label class="check"><input type="checkbox" name="is_confidential" value="y"> Only the pastors should see this</label>
+  <label class="check"><input type="checkbox" name="wants_contact" value="y"> Please call me</label>
+  <button class="btn btn-primary" type="submit">{{ icon('send', 16) }}<span>Send</span></button>
+  <p class="help">{{ g.site.name }} keeps your request private and uses your details only to pray and reply.</p>
+</form>
+{% endblock %}

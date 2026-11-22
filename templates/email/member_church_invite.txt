@@ -1,0 +1,10 @@
+Hello {{ admin.first_name }},
+
+{{ hq.name }} has added {{ church.name }} to its denomination on ChurchPlus and named you as the church administrator.
+
+{% if is_new %}Choose your password to get started (this link expires in 3 days):{% else %}Sign in with your existing ChurchPlus account to open the new workspace:{% endif %}
+{{ link }}
+
+If you were not expecting this email, you can ignore it.
+
+— ChurchPlus, by Kayron Global Tech Services

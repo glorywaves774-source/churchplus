@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Branches{% endblock %}
+{% block content %}
+{% call ui.page_header('Branches', 'Active branches: ' ~ limit.label) %}
+  {% if can('branches.create') %}
+    {% if limit.allowed %}{{ ui.button('Add branch', 'plus', 'primary', href=url_for('tenants.branch_create')) }}
+    {% else %}{{ ui.button('Branch limit reached', 'lock', attrs={'disabled': True}) }}{% endif %}
+  {% endif %}
+{% endcall %}
+
+<section class="card">
+  {{ ui.filter_bar(url_for('tenants.branches'), q, 'Search name, code or city',
+       filters=[('status', 'Status', [('active', 'Active'), ('inactive', 'Inactive')], status)]) }}
+  {% if branches %}
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead><tr><th data-sort="text">Branch</th><th data-sort="text">Code</th><th data-sort="text">City</th><th>Phone</th><th>Status</th><th class="col-actions"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        {% for b in branches %}
+        <tr>
+          <td class="wrap"><strong translate="no">{{ b.name }}</strong>{% if b.is_headquarters %} <span class="badge badge-gold plain">Headquarters</span>{% endif %}</td>
+          <td class="nowrap" translate="no">{{ b.code }}</td>
+          <td class="wrap" translate="no">{{ b.city or '—' }}</td>
+          <td class="nowrap" translate="no">{{ b.phone or '—' }}</td>
+          <td>{{ ui.badge('active' if b.is_active else 'inactive') }}</td>
+          <td class="col-actions">
+            <div class="cluster">
+              {% if can('branches.edit') %}
+              <a class="btn btn-sm" href="{{ url_for('tenants.branch_edit', public_id=b.public_id) }}">{{ icon('edit', 15) }}<span>Edit</span></a>
+              {% if not b.is_headquarters %}
+                {% if b.is_active %}
+                  {{ ui.confirm_button(url_for('tenants.branch_toggle', public_id=b.public_id), 'Deactivate', b.name ~ ' will be hidden from day-to-day lists. You can reactivate it later.', 'Deactivate', 'archive', 'ghost', 'sm') }}
+                {% else %}
+                  <form method="post" action="{{ url_for('tenants.branch_toggle', public_id=b.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost" type="submit">{{ icon('refresh-cw', 15) }}<span>Reactivate</span></button></form>
+                {% endif %}
+              {% endif %}
+              {% endif %}
+              {% if can('branches.delete') and not b.is_headquarters %}
+                {{ ui.confirm_button(url_for('tenants.branch_delete', public_id=b.public_id), 'Delete', b.name ~ ' will be permanently deleted.', 'Delete branch', 'trash-2', 'ghost', 'sm') }}
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ ui.empty_state('No branches found', 'Try a different search.' if q or status else 'Add your first branch.', 'building-2') }}
+  {% endif %}
+</section>
+{% endblock %}

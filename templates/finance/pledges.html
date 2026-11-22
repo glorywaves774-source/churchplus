@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}Pledges{% endblock %}
+{% block content %}
+{{ ui.page_header('Pledges', 'Promises to give. They count as income only when payments are received.') }}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Pledged', totals.pledged|money, 'handshake') }}
+  {{ ui.stat_card('Received', totals.paid|money, 'check-circle-2', 'success') }}
+  {{ ui.stat_card('Outstanding', (totals.pledged - totals.paid)|money, 'clock', 'gold') }}
+</div>
+<div class="grid grid-main-side">
+  <section class="card">
+    <div class="filter-bar">
+      {% for s, label in [('open', 'Open'), ('fulfilled', 'Fulfilled'), ('cancelled', 'Cancelled')] %}<a class="chip" href="{{ url_for('finance.pledges', status=s) }}" aria-pressed="{{ 'true' if status == s else 'false' }}">{{ label }}</a>{% endfor %}
+    </div>
+    {% if rows %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Pledger</th><th>For</th><th class="col-num">Pledged</th><th class="col-num">Paid</th><th>Progress</th><th class="col-actions"></th></tr></thead>
+      <tbody>{% for r in rows %}{% set p = r.p %}<tr>
+        <td class="wrap" translate="no">{{ p.name }}<div class="person-sub">{{ p.pledge_date.strftime('%d %b %Y') }}{% if p.due_date %} · due {{ p.due_date.strftime('%d %b %Y') }}{% endif %}</div></td>
+        <td class="wrap">{{ p.campaign.name if p.campaign else p.income_account.name }}</td>
+        <td class="num">{{ p.amount|money(plain=True) }}</td>
+        <td class="num">{{ r.paid|money(plain=True) }}</td>
+        <td class="progress-cell"><progress class="progress" max="{{ p.amount }}" value="{{ [r.paid, p.amount]|min }}" aria-label="Paid"></progress></td>
+        <td class="col-actions"><div class="cluster">
+          {% if p.status.value == 'open' and can('finance.create') %}<a class="btn btn-sm" href="{{ url_for('finance.record_giving', pledge=p.public_id) }}">{{ icon('plus', 15) }}<span>Payment</span></a>{% endif %}
+          {% if p.status.value == 'open' and can('finance.edit') %}{{ ui.confirm_button(url_for('finance.cancel_pledge', public_id=p.public_id), '', 'Cancel this pledge?', 'Cancel pledge', 'x', 'ghost', 'sm') }}{% endif %}
+        </div></td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No pledges', icon_name='handshake') }}{% endif %}
+  </section>
+  {% if can('finance.create') %}
+  {% call ui.card('Record a pledge') %}
+    <form method="post" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('member_number', 'Membership number', placeholder='e.g. GCI-000124') }}
+      {{ ui.input('pledger_name', 'Or name') }}
+      <div class="field"><label class="label" for="f-campaign">Campaign or project</label><select class="select" id="f-campaign" name="campaign"><option value="">None</option>{% for c in campaigns %}<option value="{{ c.public_id }}">{{ c.name }}</option>{% endfor %}</select></div>
+      {{ fm.account_select('income_account', 'Or type of giving', income_accounts, required=False, help='Used when no campaign is chosen.') }}
+      {{ fm.amount_input() }}
+      {{ ui.input('pledge_date', 'Date pledged', today.isoformat(), 'date') }}
+      {{ ui.input('due_date', 'Due by', '', 'date') }}
+      <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save pledge</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

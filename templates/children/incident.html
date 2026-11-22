@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ i.reference }}{% endblock %}
+{% block content %}
+{% call ui.page_header(i.reference, i.category ~ ' · ' ~ i.occurred_on.strftime('%d %B %Y')) %}
+  {{ ui.badge(i.status.value, {'open': 'danger', 'referred': 'warning', 'closed': ''}[i.status.value]) }}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+<div class="grid grid-main-side">
+  {% call ui.card('Concern') %}
+    <dl class="kv">
+      <dt>Child</dt><dd translate="no">{% if i.child %}<a href="{{ url_for('children.profile', public_id=i.child.public_id) }}">{{ i.child.member.display_name }}</a>{% else %}—{% endif %}</dd>
+      <dt>Recorded</dt><dd>{{ i.created_at|localtime }}</dd>
+      {% if i.referred_to %}<dt>Referred to</dt><dd>{{ i.referred_to }}</dd>{% endif %}
+    </dl>
+    <h3 class="mt-4">What happened</h3>
+    <div class="pre-wrap">{{ i.description }}</div>
+    {% if i.action_taken %}<h3 class="mt-4">Action taken</h3><div class="pre-wrap">{{ i.action_taken }}</div>{% endif %}
+  {% endcall %}
+  {% call ui.card('Update') %}
+    <form method="post" class="stack no-print">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% set so = [] %}{% for s in statuses %}{% set _ = so.append((s.value, {'open': 'Open', 'referred': 'Referred to authorities', 'closed': 'Closed'}[s.value])) %}{% endfor %}
+      {{ ui.select('status', so, 'Status', i.status.value) }}
+      {{ ui.input('referred_to', 'Referred to', i.referred_to or '', placeholder='e.g. Department of Social Welfare, DOVVSU') }}
+      <div class="field"><label class="label" for="f-action_taken">Action taken</label><textarea class="textarea" id="f-action_taken" name="action_taken">{{ i.action_taken or '' }}</textarea></div>
+      <button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Save</span></button>
+    </form>
+  {% endcall %}
+</div>
+{% endblock %}

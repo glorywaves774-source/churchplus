@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Audit trail{% endblock %}
+{% block content %}
+{% call ui.page_header('Audit trail', 'A permanent record of changes made in ' ~ g.tenant.name ~ '.') %}
+  {% if can('audit.export') %}{{ ui.button('Export CSV', 'download', href=url_for('audit.export', **params)) }}{% endif %}
+{% endcall %}
+<section class="card">
+  <form class="filter-bar" method="get" action="{{ url_for('audit.index') }}">
+    <select class="select" name="category" aria-label="Area">
+      <option value="">All areas</option>
+      {% for key, (label, _) in categories.items() %}<option value="{{ key }}"{% if key == category %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    <input class="input date-input" type="date" name="from" value="{{ params.get('from', '') }}" aria-label="From date">
+    <input class="input date-input" type="date" name="to" value="{{ params.get('to', '') }}" aria-label="To date">
+    <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Apply</span></button>
+  </form>
+  {% if rows %}
+  <div class="table-wrap">
+    <table class="table">
+      <thead><tr><th>When (UTC)</th><th>Activity</th><th>By</th><th>IP address</th></tr></thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td class="nowrap">{{ r.at.strftime('%d %b %Y, %H:%M') }}</td>
+          <td class="wrap"><span class="cluster">{{ icon(r.icon, 16) }}{{ r.text }}</span></td>
+          <td class="wrap" translate="no">{{ r.actor }}</td>
+          <td class="nowrap" translate="no">{{ r.ip or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ ui.pagination(page, 'audit.index', params) }}
+  {% else %}
+    {{ ui.empty_state('Nothing recorded for these filters', icon_name='history') }}
+  {% endif %}
+</section>
+{% endblock %}

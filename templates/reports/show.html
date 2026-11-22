@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ d.title }}{% endblock %}
+{% block content %}
+{% call ui.page_header(d.title, period or d.description) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+  {% if can('reports.export') %}
+    {{ ui.dropdown('Download', 'download', [('CSV', url_for('reports.show', key=d.key, format='csv', **params), 'file-text'), ('Excel', url_for('reports.show', key=d.key, format='xlsx', **params), 'file-spreadsheet'), ('PDF', url_for('reports.show', key=d.key, format='pdf', **params), 'file-down')], icon_only=False, align='end') }}
+  {% endif %}
+{% endcall %}
+<form class="card no-print mb-4 report-filters" method="get">
+  {% if d.uses_dates %}
+  <select class="select" name="period" aria-label="Period">{% for k, label in presets %}<option value="{{ k }}"{% if k == preset %} selected{% endif %}>{{ label }}</option>{% endfor %}<option value="custom"{% if preset == 'custom' %} selected{% endif %}>Choose dates…</option></select>
+  <span class="report-dates" data-show-when="period=custom">
+    <input class="input" type="date" name="start" value="{{ start.isoformat() }}" aria-label="From">
+    <input class="input" type="date" name="end" value="{{ end.isoformat() }}" aria-label="To">
+  </span>
+  {% endif %}
+  {% if branches|length > 1 %}<select class="select" name="branch" aria-label="Branch"><option value="">All branches</option>{% for b in branches %}<option value="{{ b.public_id }}"{% if branch and branch.id == b.id %} selected{% endif %}>{{ b.name }}</option>{% endfor %}</select>{% endif %}
+  <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Apply</span></button>
+</form>
+<div class="print-only report-head"><strong translate="no">{{ g.tenant.name }}</strong> · {{ d.title }}{% if period %} · {{ period }}{% endif %}</div>
+{% if r.summary %}<div class="grid grid-stats mb-4">{% for label, value in r.summary %}{{ ui.stat_card(label, value, d.icon) }}{% endfor %}</div>{% endif %}
+{% if r.note %}{{ ui.alert(r.note, 'warning') }}{% endif %}
+{% if r.chart and r.rows %}{% call ui.card() %}{{ ui.chart(r.chart, label=d.title) }}{% endcall %}<div class="mb-4"></div>{% endif %}
+{% call ui.card(flush=True) %}
+  {% if r.rows %}
+  <div class="table-wrap"><table class="table" data-sortable>
+    <thead><tr>{% for c in r.columns %}<th{% if loop.index0 in r.numeric or loop.index0 in r.money %} class="col-num"{% endif %}>{{ c }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in r.rows %}<tr>{% for v in row %}{% set i = loop.index0 %}<td class="{{ 'num' if i in r.numeric or i in r.money else 'wrap' }}">{{ v|money(plain=True) if i in r.money else ('' if v is none else v) }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    {% if r.totals %}<tfoot><tr>{% for v in r.totals %}{% set i = loop.index0 %}<th class="{{ 'num' if i in r.numeric or i in r.money else '' }}">{{ v|money(plain=True) if i in r.money else v }}</th>{% endfor %}</tr></tfoot>{% endif %}
+  </table></div>
+  {% else %}{{ ui.empty_state('No data for this period', 'Try a longer period.', 'bar-chart-3') }}{% endif %}
+{% endcall %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

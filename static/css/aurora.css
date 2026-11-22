@@ -1,0 +1,193 @@
+/* ==========================================================================
+   Aurora UI – soft "northern lights" colour drifting behind frosted glass.
+   Keeps the ChurchPlus palette (purple, navy, gold) with a touch of teal
+   and rose. Loaded after dark.css and before mobile.css.
+
+   * The aurora is one fixed layer (body::before) that moves with transforms
+     only, so the browser can animate it cheaply.
+   * It stands still on phones, when "reduce motion" is on, and is removed
+     when printing (prints stay white).
+   ========================================================================== */
+
+:root {
+  --au-1: rgba(109, 82, 224, 0.62);   /* purple */
+  --au-2: rgba(34, 196, 181, 0.46);   /* teal   */
+  --au-3: rgba(221, 178, 44, 0.40);   /* gold   */
+  --au-4: rgba(229, 92, 170, 0.36);   /* rose   */
+  --au-5: rgba(70, 120, 235, 0.40);   /* blue   */
+  --au-blur: 70px;
+  --au-base: #eeedf9;
+
+  /* Glass surfaces a little clearer so the light shows through */
+  --cp-bg: var(--au-base);
+  --cp-surface: rgba(255, 255, 255, 0.58);
+  --cp-surface-hover: rgba(255, 255, 255, 0.55);
+  --cp-surface-sunken: rgba(240, 241, 249, 0.78);
+  --cp-border: rgba(255, 255, 255, 0.62);
+  --au-edge: rgba(18, 32, 74, 0.08);
+  --au-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  --cp-shadow: 0 1px 2px rgba(11, 21, 48, 0.04), 0 14px 36px rgba(42, 29, 120, 0.10);
+  --cp-shadow-lg: 0 2px 6px rgba(11, 21, 48, 0.06), 0 28px 70px rgba(42, 29, 120, 0.20);
+  --au-button: linear-gradient(135deg, #6d52e0 0%, #5b3fd1 45%, #4a6fe0 100%);
+}
+
+[data-theme="dark"] {
+  --au-1: rgba(122, 96, 255, 0.70);
+  --au-2: rgba(28, 210, 175, 0.48);
+  --au-3: rgba(201, 162, 39, 0.28);
+  --au-4: rgba(214, 74, 160, 0.44);
+  --au-5: rgba(56, 110, 255, 0.48);
+  --au-base: #070b1a;
+  --cp-bg: var(--au-base);
+  --cp-surface: rgba(14, 20, 44, 0.56);
+  --cp-surface-hover: rgba(255, 255, 255, 0.05);
+  --cp-surface-sunken: rgba(9, 14, 32, 0.66);
+  --cp-border: rgba(255, 255, 255, 0.09);
+  --au-edge: rgba(255, 255, 255, 0.06);
+  --au-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --cp-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 16px 40px rgba(0, 0, 0, 0.35);
+  --au-button: linear-gradient(135deg, #9a86ff 0%, #8a74ff 45%, #6f9bff 100%);
+}
+
+/* ---------- The aurora layer ---------- */
+body { background: var(--au-base); }
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(38vmax 26vmax at 18% 22%, var(--au-1), transparent 70%),
+    radial-gradient(34vmax 24vmax at 82% 12%, var(--au-2), transparent 70%),
+    radial-gradient(30vmax 22vmax at 70% 78%, var(--au-4), transparent 70%),
+    radial-gradient(36vmax 20vmax at 28% 86%, var(--au-5), transparent 70%),
+    radial-gradient(22vmax 16vmax at 52% 46%, var(--au-3), transparent 70%);
+  filter: blur(var(--au-blur)) saturate(120%);
+  transform: translate3d(0, 0, 0);
+  animation: aurora-drift 48s ease-in-out infinite alternate;
+  will-change: transform;
+}
+/* A faint ribbon of light across the top, like a curtain of aurora */
+body::after {
+  content: "";
+  position: fixed;
+  left: -10vw; right: -10vw; top: -18vh; height: 52vh;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(100deg, transparent 8%, var(--au-2) 30%, var(--au-1) 52%, var(--au-4) 72%, transparent 92%);
+  opacity: .5;
+  filter: blur(60px);
+  transform: rotate(-6deg);
+  animation: aurora-ribbon 36s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg) scale(1); }
+  33%  { transform: translate3d(4vmax, -3vmax, 0) rotate(8deg) scale(1.06); }
+  66%  { transform: translate3d(-3vmax, 3vmax, 0) rotate(-6deg) scale(.97); }
+  100% { transform: translate3d(2vmax, 2vmax, 0) rotate(4deg) scale(1.04); }
+}
+@keyframes aurora-ribbon {
+  0%   { transform: translate3d(-4vw, 0, 0) rotate(-6deg) scaleY(1); }
+  100% { transform: translate3d(4vw, 4vh, 0) rotate(-2deg) scaleY(1.25); }
+}
+
+/* ---------- Glass panels ---------- */
+.card, .glass, .stat-card, .site-header, .public-bar, .auth-card, .dropdown-menu, dialog.modal {
+  border-color: var(--cp-border);
+  box-shadow: var(--au-highlight), 0 0 0 1px var(--au-edge), var(--cp-shadow);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
+}
+.topbar {
+  background: color-mix(in srgb, var(--cp-surface) 80%, transparent);
+  border-bottom-color: var(--au-edge);
+}
+.table thead th { background: transparent; }
+.table tbody tr:hover { background: var(--cp-surface-hover); }
+
+/* ---------- Navigation: deep navy lit by the aurora ---------- */
+.sidebar {
+  background:
+    radial-gradient(120% 40% at 0% 0%, rgba(109, 82, 224, 0.38), transparent 70%),
+    radial-gradient(90% 30% at 100% 55%, rgba(34, 196, 181, 0.14), transparent 70%),
+    radial-gradient(110% 35% at 20% 100%, rgba(229, 92, 170, 0.16), transparent 70%),
+    linear-gradient(180deg, #0d1838 0%, #0a1430 100%);
+}
+[data-theme="dark"] .sidebar {
+  background:
+    radial-gradient(120% 40% at 0% 0%, rgba(122, 96, 255, 0.34), transparent 70%),
+    radial-gradient(90% 30% at 100% 55%, rgba(28, 210, 175, 0.12), transparent 70%),
+    radial-gradient(110% 35% at 20% 100%, rgba(214, 74, 160, 0.14), transparent 70%),
+    linear-gradient(180deg, #080e22 0%, #060b1b 100%);
+}
+.nav-link[aria-current="page"] { box-shadow: inset 3px 0 0 var(--cp-gold-500), 0 0 24px rgba(201, 162, 39, 0.12); }
+.tabbar {
+  background: color-mix(in srgb, var(--cp-surface) 82%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(22px);
+  backdrop-filter: saturate(180%) blur(22px);
+}
+
+/* ---------- Buttons and accents ---------- */
+.btn-primary {
+  background: var(--au-button);
+  border-color: transparent;
+  box-shadow: 0 6px 18px rgba(91, 63, 209, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.btn-primary:hover { filter: brightness(1.06); background: var(--au-button); }
+[data-theme="dark"] .btn-primary { box-shadow: 0 6px 20px rgba(138, 116, 255, 0.30), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+.stat-icon { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4); }
+.brand-mark, .site-mark { box-shadow: 0 0 22px rgba(109, 82, 224, 0.45); }
+
+/* ---------- Sign-in pages: neumorphic card floating on the aurora ---------- */
+.auth-card {
+  background: color-mix(in srgb, var(--cp-surface) 92%, transparent);
+  box-shadow: var(--au-highlight), 0 0 0 1px var(--au-edge),
+              18px 18px 48px rgba(42, 29, 120, 0.16), -12px -12px 36px rgba(255, 255, 255, 0.55);
+}
+[data-theme="dark"] .auth-card {
+  box-shadow: var(--au-highlight), 0 0 0 1px var(--au-edge),
+              18px 18px 48px rgba(0, 0, 0, 0.55), -10px -10px 30px rgba(122, 96, 255, 0.08);
+}
+
+/* ---------- Public church website hero ---------- */
+.site-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: linear-gradient(135deg, #0d1838, #1f1760 55%, #2a1d78);
+}
+.site-hero::before {
+  content: "";
+  position: absolute;
+  inset: -40%;
+  z-index: -1;
+  background:
+    radial-gradient(40% 50% at 20% 30%, rgba(109, 82, 224, 0.75), transparent 70%),
+    radial-gradient(35% 45% at 80% 20%, rgba(34, 196, 181, 0.55), transparent 70%),
+    radial-gradient(35% 40% at 65% 85%, rgba(229, 92, 170, 0.50), transparent 70%),
+    radial-gradient(25% 30% at 40% 70%, rgba(201, 162, 39, 0.35), transparent 70%);
+  filter: blur(40px);
+  animation: aurora-drift 30s ease-in-out infinite alternate;
+}
+
+/* ---------- Calm modes ---------- */
+@media (max-width: 760px) {
+  /* Phones: the light stays still (smooth scrolling, longer battery) and the glass is lighter work */
+  body::before, body::after, .site-hero::before { animation: none; }
+  :root { --au-blur: 56px; }
+  .card, .stat-card { -webkit-backdrop-filter: saturate(160%) blur(14px); backdrop-filter: saturate(160%) blur(14px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body::before, body::after, .site-hero::before { animation: none; }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --cp-surface: rgba(255, 255, 255, 0.94); }
+  [data-theme="dark"] { --cp-surface: rgba(16, 22, 46, 0.95); }
+  body::after { display: none; }
+}
+@media print {
+  body::before, body::after, .site-hero::before { display: none !important; }
+  body { background: #fff !important; }
+}

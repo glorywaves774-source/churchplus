@@ -1,0 +1,78 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ t.name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(t.name, (t.city or '') ~ ' · ' ~ t.slug) %}
+  {{ ui.badge(t.status.value, {'active': 'success', 'trial': 'info', 'pending': 'warning', 'suspended': 'danger', 'cancelled': ''}[t.status.value]) }}
+{% endcall %}
+<p class="lock-note mb-4">{{ icon('lock', 15) }} Platform staff see subscription and usage counts only. Member, giving, prayer, counselling and children's records are private to the church.</p>
+<div class="grid grid-stats mb-4">{% for label, n in usage.items() %}{{ ui.stat_card(label, n, 'users' if 'ccount' in label or label == 'Members' else 'building-2') }}{% endfor %}</div>
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Subscription') %}
+      {% if sub %}
+      <dl class="kv">
+        <dt>Plan</dt><dd>{{ sub.plan.name }} ({{ sub.billing_cycle.value }})</dd>
+        <dt>Status</dt><dd>{{ sub.status.value.replace('_', ' ')|capitalize }}</dd>
+        {% if sub.trial_ends_at %}<dt>Trial ends</dt><dd>{{ sub.trial_ends_at|localtime('%d %b %Y') }}</dd>{% endif %}
+        {% if sub.current_period_end %}<dt>Paid until</dt><dd>{{ sub.current_period_end|localtime('%d %b %Y') }}</dd>{% endif %}
+        {% if sub.grace_period_ends_at %}<dt>Grace ends</dt><dd>{{ sub.grace_period_ends_at|localtime('%d %b %Y') }}</dd>{% endif %}
+        {% if (t.settings or {}).get('suspended_reason') %}<dt>Suspended because</dt><dd>{{ t.settings.suspended_reason }}</dd>{% endif %}
+      </dl>
+      {% else %}<p>No subscription.</p>{% endif %}
+    {% endcall %}
+    {% call ui.card('Invoices', flush=True) %}
+      {% if invoices %}<div class="table-wrap"><table class="table"><thead><tr><th>Invoice</th><th>Period</th><th class="col-num">Amount</th><th>Status</th><th class="col-actions"></th></tr></thead>
+      <tbody>{% for i in invoices %}<tr>
+        <td class="nowrap">{{ i.number }}</td><td class="wrap">{{ i.period_start.strftime('%d %b %Y') }} – {{ i.period_end.strftime('%d %b %Y') }}</td>
+        <td class="num">{{ i.amount|money(i.currency) }}</td>
+        <td>{{ ui.badge(i.status.value, {'open': 'warning', 'paid': 'success', 'void': ''}[i.status.value]) }}</td>
+        <td class="col-actions">{% if can_write and i.status.value == 'open' %}
+          <details class="no-print"><summary class="btn btn-sm">{{ icon('check', 15) }}<span>Record payment</span></summary>
+          <form method="post" action="{{ url_for('platform.invoice_action', public_id=i.public_id, action='mark_paid') }}" class="stack mt-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {{ ui.input('reference', 'Bank or MoMo reference', required=True) }}
+            {{ ui.select('channel', [('bank', 'Bank transfer'), ('mobile_money', 'Mobile money'), ('cash', 'Cash'), ('cheque', 'Cheque')], 'Paid by', 'bank') }}
+            <button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Mark paid</span></button>
+          </form>
+          <form method="post" action="{{ url_for('platform.invoice_action', public_id=i.public_id, action='void') }}" class="mt-4"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-sm" type="submit">{{ icon('x', 15) }}<span>Void</span></button></form>
+          </details>{% endif %}</td>
+      </tr>{% endfor %}</tbody></table></div>
+      {% else %}{{ ui.empty_state('No invoices yet', icon_name='receipt') }}{% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack">
+    {% call ui.card('Church') %}
+      <dl class="kv" translate="no">
+        <dt>Owner</dt><dd>{% for u in owners %}{{ u.full_name }}<br><span class="person-sub">{{ u.email }}</span>{% endfor %}</dd>
+        <dt>Phone</dt><dd>{{ t.phone or '—' }}</dd><dt>Email</dt><dd>{{ t.email or '—' }}</dd>
+        <dt>Created</dt><dd>{{ t.created_at|localtime('%d %b %Y') }}</dd>
+      </dl>
+    {% endcall %}
+    {% if can_write %}
+    {% call ui.card('Actions') %}
+      <div class="stack">
+        {% if t.status.value == 'pending' %}<form method="post" action="{{ url_for('platform.church_action', public_id=t.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="approve"><button class="btn btn-primary btn-sm" type="submit">{{ icon('check', 15) }}<span>Approve church</span></button></form>{% endif %}
+        {% if t.status.value == 'suspended' %}<form method="post" action="{{ url_for('platform.church_action', public_id=t.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="reactivate"><button class="btn btn-primary btn-sm" type="submit">{{ icon('refresh-cw', 15) }}<span>Reactivate</span></button></form>
+        {% else %}<form method="post" action="{{ url_for('platform.church_action', public_id=t.public_id) }}" class="stack" data-confirm="Suspend {{ t.name }}? Their users will not be able to work until you reactivate it." data-confirm-action="Suspend"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="suspend">{{ ui.input('reason', 'Reason for suspending') }}<button class="btn btn-sm" type="submit">{{ icon('lock', 15) }}<span>Suspend</span></button></form>{% endif %}
+        <form method="post" action="{{ url_for('platform.church_action', public_id=t.public_id) }}" class="cluster"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="extend_trial"><label class="label" for="days">Extend trial</label><input class="input input-narrow" id="days" name="days" type="number" min="1" max="90" value="14"><button class="btn btn-sm" type="submit">{{ icon('clock', 15) }}<span>Days</span></button></form>
+        <form method="post" action="{{ url_for('platform.church_action', public_id=t.public_id) }}" class="stack"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="change_plan">
+          {% set po = [] %}{% for p in plans %}{% set _ = po.append((p.public_id, p.name)) %}{% endfor %}
+          {{ ui.select('plan', po, 'Plan (no invoice)', sub.plan.public_id if sub else '') }}<button class="btn btn-sm" type="submit">{{ icon('layers', 15) }}<span>Change plan</span></button></form>
+      </div>
+    {% endcall %}
+    {% call ui.card('New invoice') %}
+      <form method="post" action="{{ url_for('platform.create_invoice', public_id=t.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% set po = [] %}{% for p in plans %}{% set _ = po.append((p.public_id, p.name)) %}{% endfor %}
+        {{ ui.select('plan', po, 'Plan', sub.plan.public_id if sub else '') }}
+        {{ ui.select('cycle', [('monthly', 'Monthly'), ('annual', 'Annual')], 'Billing', 'monthly') }}
+        {{ ui.input('amount', 'Amount (leave empty for the plan price)', attrs={'inputmode': 'decimal'}) }}
+        {{ ui.input('note', 'Note') }}
+        <button class="btn btn-sm" type="submit">{{ icon('receipt', 15) }}<span>Create invoice</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

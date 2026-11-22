@@ -1,0 +1,15 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "accounting/_report.html" as rp with context %}
+{% block title %}Income statement{% endblock %}
+{% block content %}
+{{ rp.filters('accounting.income_statement', 'period', start=start, end=end) }}
+<section class="card report">
+  <div class="card-body">{{ rp.report_title('Income and expenditure statement', start.strftime('%d %b %Y') ~ ' – ' ~ end.strftime('%d %b %Y')) }}</div>
+  <div class="table-wrap"><table class="table statement">
+    {{ rp.section('Income', st.income, 'Total income', st.total_income) }}
+    {{ rp.section('Expenses', st.expenses, 'Total expenses', st.total_expenses) }}
+    <tfoot><tr class="grand-row"><td>{{ 'Surplus' if st.surplus >= 0 else 'Deficit' }} for the period</td><td class="num">{{ st.surplus|money }}</td></tr></tfoot>
+  </table></div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}{{ e.voucher_number }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Payment voucher ' ~ e.voucher_number, e.payee ~ ' · ' ~ (e.amount|money)) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+<div class="grid grid-main-side">
+  {% call ui.card() %}
+    <dl class="kv">
+      <dt>Status</dt><dd>{{ ui.badge(e.status.value, {'submitted': 'warning', 'approved': 'info', 'paid': 'success', 'rejected': 'danger', 'void': ''}[e.status.value]) }}</dd>
+      <dt>Date</dt><dd>{{ e.expense_date.strftime('%d %B %Y') }}</dd>
+      <dt>Pay to</dt><dd translate="no">{{ e.payee }}</dd>
+      <dt>For</dt><dd>{{ e.description }}</dd>
+      <dt>Category</dt><dd>{{ e.expense_account.name }}</dd>
+      {% if e.department %}<dt>Department</dt><dd>{{ e.department.name }}</dd>{% endif %}
+      {% if e.branch %}<dt>Branch</dt><dd translate="no">{{ e.branch.name }}</dd>{% endif %}
+      <dt>Amount</dt><dd class="receipt-amount">{{ e.amount|money }}</dd>
+      <dt>Requested by</dt><dd translate="no">{{ names.get(e.requested_by_id, '—') }}</dd>
+      {% if e.approved_by_id %}<dt>{{ 'Rejected' if e.status.value == 'rejected' else 'Approved' }} by</dt><dd translate="no">{{ names.get(e.approved_by_id, '—') }}, {{ e.approved_at.strftime('%d %b %Y') }}</dd>{% endif %}
+      {% if e.decision_note %}<dt>Note</dt><dd>{{ e.decision_note }}</dd>{% endif %}
+      {% if e.paid_on %}<dt>Paid</dt><dd>{{ e.paid_on.strftime('%d %b %Y') }} from {{ e.payment_account.name }} ({{ e.payment_method.value|replace('_', ' ') }}{% if e.payment_reference %}, {{ e.payment_reference }}{% endif %})</dd>{% endif %}
+      {% if e.attachment_key %}<dt>Attachment</dt><dd><a href="{{ url_for('finance.expense_attachment', public_id=e.public_id) }}">{{ icon('paperclip', 14) }} {{ e.attachment_name }}</a></dd>{% endif %}
+    </dl>
+    <div class="signature-lines print-only"><span>Prepared by</span><span>Approved by</span><span>Received by</span></div>
+  {% endcall %}
+  <div class="stack no-print">
+    {% if e.status.value == 'submitted' and can('finance.approve') %}
+    {% call ui.card('Approve or reject') %}
+      {% if e.requested_by_id == g.user.id %}<p class="help">You submitted this voucher, so another approver must decide.</p>{% else %}
+      <form method="post" class="stack" action="{{ url_for('finance.expense_action', public_id=e.public_id, action='approve') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ ui.input('note', 'Note (optional)') }}
+        <div class="cluster">
+          <button class="btn btn-primary" type="submit">{{ icon('check', 17) }}<span>Approve</span></button>
+          <button class="btn btn-ghost" type="submit" formaction="{{ url_for('finance.expense_action', public_id=e.public_id, action='reject') }}">{{ icon('x', 17) }}<span>Reject</span></button>
+        </div>
+      </form>{% endif %}
+    {% endcall %}
+    {% endif %}
+    {% if e.status.value == 'approved' and can('finance.edit') %}
+    {% call ui.card('Record payment') %}
+      <form method="post" class="stack" action="{{ url_for('finance.expense_action', public_id=e.public_id, action='pay') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ fm.account_select('payment_account', 'Paid from', money_accounts) }}
+        {{ fm.method_select('method', methods, 'bank_transfer') }}
+        {{ ui.input('reference', 'Reference', placeholder='Cheque or transaction number') }}
+        {{ ui.input('paid_on', 'Date paid', today.isoformat(), 'date') }}
+        <button class="btn btn-primary" type="submit">{{ icon('banknote', 17) }}<span>Mark as paid</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% if e.status.value in ('submitted', 'approved', 'paid') and can('finance.approve') %}
+    {% call ui.card('Void voucher', 'Any journal entries are reversed.') %}
+      <form method="post" class="stack" action="{{ url_for('finance.expense_action', public_id=e.public_id, action='void') }}" data-confirm="Void {{ e.voucher_number }}?" data-confirm-action="Void">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ ui.input('note', 'Reason', required=True) }}
+        <button class="btn btn-danger btn-sm" type="submit">{{ icon('x-circle', 15) }}<span>Void</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

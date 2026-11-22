@@ -1,0 +1,222 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Design system{% endblock %}
+{% block content %}
+
+{% call ui.page_header('Good morning, Ama', 'Design system preview with sample data. Real dashboards use the same components.') %}
+  {{ ui.button('Export', 'download') }}
+  {{ ui.button('Add member', 'user-plus', 'primary', attrs={'data-modal-open': 'member-modal'}) }}
+{% endcall %}
+
+{{ ui.alert('This page is only available in development and testing. It shows every reusable component.', 'info', 'Design system') }}
+
+{# ---------- Dashboard statistics ---------- #}
+<h3 class="mt-4">Dashboard statistics</h3>
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Total members', '1,284', 'users', '', '4.2%', True, 'vs last month') }}
+  {{ ui.stat_card('New members', '37', 'user-plus', 'success', '12', True, 'this month') }}
+  {{ ui.stat_card('First-timers', '18', 'sparkles', 'gold', '3', False, 'vs last Sunday') }}
+  {{ ui.stat_card('Sunday attendance', '961', 'clipboard-check', 'info', '2.5%', True, 'average') }}
+  {{ ui.stat_card('Total giving', 'GHS 85,120', 'hand-coins', 'gold', '8.1%', True, 'November') }}
+  {{ ui.stat_card('Expenses', 'GHS 31,460', 'receipt', 'danger', '1.9%', False, 'November') }}
+</div>
+
+<div class="grid grid-main-side mb-4">
+  {% call ui.card('Attendance trend', 'Average per service, last six months') %}
+    {{ ui.chart(attendance_chart, label='Attendance trend line chart') }}
+  {% endcall %}
+  {% call ui.card('Ministry membership', 'Members by department') %}
+    {{ ui.chart(ministry_chart, 'sm', 'Ministry membership doughnut chart') }}
+  {% endcall %}
+</div>
+
+<div class="grid grid-main-side mb-4">
+  {% call ui.card('Giving', 'Tithes and offerings by month (GHS)') %}
+    {{ ui.chart(giving_chart, label='Giving bar chart') }}
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card('Quick actions') %}
+      <div class="quick-actions">
+        <a class="quick-action" href="#">{{ icon('user-plus', 20) }}Register member</a>
+        <a class="quick-action" href="#">{{ icon('clipboard-check', 20) }}Take attendance</a>
+        <a class="quick-action" href="#">{{ icon('receipt', 20) }}Record giving</a>
+        <a class="quick-action" href="#">{{ icon('megaphone', 20) }}Send message</a>
+      </div>
+    {% endcall %}
+    {% call ui.card('Building fund', 'GHS 412,000 of GHS 600,000') %}
+      <progress class="progress" max="100" value="69" aria-label="Building fund progress">69%</progress>
+      <p class="help mt-1 mb-0">69% raised · 214 pledges outstanding</p>
+    {% endcall %}
+  </div>
+</div>
+
+<div class="grid grid-2 mb-4">
+  {% call ui.card('Recent activity', flush=True) %}{{ ui.feed(activity) }}{% endcall %}
+  {% call ui.card('Upcoming events', flush=True) %}
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Event</th><th>Date</th><th>Venue</th><th>Status</th></tr></thead>
+        <tbody>
+          {% for name, date, venue, status in events %}
+          <tr><td class="wrap"><strong>{{ name }}</strong></td><td class="nowrap">{{ date }}</td><td class="wrap">{{ venue }}</td><td>{{ ui.badge(status) }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endcall %}
+</div>
+
+{# ---------- Data table ---------- #}
+<h3 class="mt-4">Data table with filters, sorting and pagination</h3>
+<section class="card mb-4">
+  {{ ui.filter_bar(url_for('design.index'), placeholder='Search members',
+       filters=[('status', 'Status', [('active','Active'),('pending','Pending'),('inactive','Inactive')], ''),
+                ('branch', 'Branch', [('accra','Accra Central'),('tema','Tema'),('kumasi','Kumasi')], '')]) }}
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead>
+        <tr>
+          <th data-sort="text">Member</th><th data-sort="text">ID</th><th data-sort="text">Department</th>
+          <th data-sort="text">Branch</th><th>Phone</th><th data-sort="date">Joined</th><th data-sort="text">Status</th>
+          <th class="col-actions"><span class="sr-only">Actions</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for mid, name, dept, branch, status, phone, joined in members %}
+        <tr>
+          <td>{{ ui.person(name, 'Member since ' ~ joined[:4]) }}</td>
+          <td class="nowrap" translate="no">{{ mid }}</td>
+          <td class="wrap">{{ dept }}</td>
+          <td class="wrap">{{ branch }}</td>
+          <td class="nowrap" translate="no">{{ phone }}</td>
+          <td class="nowrap" data-value="{{ joined }}">{{ joined }}</td>
+          <td>{{ ui.badge(status) }}</td>
+          <td class="col-actions">{{ ui.dropdown('Actions for ' ~ name, items=[('View profile', '#', 'eye'), ('Edit', '#', 'edit'), ('Print ID card', '#', 'id-card'), ('-', '', ''), ('Transfer', '#', 'repeat')]) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ ui.pagination(pager, 'design.index') }}
+</section>
+
+{# ---------- Forms ---------- #}
+<h3 class="mt-4">Forms</h3>
+{% call ui.card('Member details', 'Every field uses 16px text so phones do not zoom in.') %}
+<form class="form-grid" action="#">
+  {{ ui.input('first_name', 'First name', required=True, placeholder='e.g. Abena') }}
+  {{ ui.input('last_name', 'Last name', required=True, placeholder='e.g. Mensah') }}
+  {{ ui.input('phone', 'Phone number', type='tel', placeholder='024 000 0000', icon_name='phone') }}
+  {{ ui.input('email', 'Email address', type='email', placeholder='name@example.com', icon_name='mail') }}
+  {{ ui.input('dob', 'Date of birth', type='date') }}
+  {{ ui.select('branch', [('accra','Accra Central'),('tema','Tema'),('kumasi','Kumasi')], 'Branch', placeholder='Choose a branch') }}
+  <div class="field span-2">
+    <label class="label" for="f-notes">Notes</label>
+    <textarea class="textarea" id="f-notes" name="notes" placeholder="Anything the pastoral team should know"></textarea>
+    <span class="help">Visible to membership officers and pastors only.</span>
+  </div>
+  <div class="field has-error">
+    <label class="label" for="f-gps">Ghana Post GPS</label>
+    <input class="input" id="f-gps" name="gps" value="GA-1234" aria-invalid="true" aria-describedby="f-gps-error">
+    <span class="field-error" id="f-gps-error">Enter a full address code, e.g. GA-123-4567.</span>
+  </div>
+  <div class="field">
+    <span class="label">Passport photograph</span>
+    <div class="upload-drop">{{ icon('cloud-upload', 22) }}<span>JPG or PNG, up to 10 MB</span><input type="file" accept="image/png,image/jpeg" aria-label="Passport photograph"></div>
+  </div>
+  <div class="field span-2 cluster">
+    <label class="check"><input type="checkbox" checked> Baptised</label>
+    <label class="switch"><input type="checkbox" role="switch" checked> Send birthday messages</label>
+  </div>
+  <div class="form-actions span-2">
+    <button type="button" class="btn">Cancel</button>
+    <button type="button" class="btn btn-primary" data-demo-toast="Member saved successfully." data-kind="success">{{ icon('save', 17) }}<span>Save member</span></button>
+  </div>
+</form>
+{% endcall %}
+
+{# ---------- Buttons, badges, alerts ---------- #}
+<h3 class="mt-4">Buttons, badges and alerts</h3>
+<div class="grid grid-2 mb-4">
+  {% call ui.card('Buttons') %}
+    <div class="cluster mb-4">
+      {{ ui.button('Primary', 'plus', 'primary') }}
+      {{ ui.button('Secondary', 'download') }}
+      {{ ui.button('Gold', 'star', 'gold') }}
+      {{ ui.button('Ghost', 'settings', 'ghost') }}
+      {{ ui.button('Delete', 'trash-2', 'danger') }}
+    </div>
+    <div class="cluster">
+      {{ ui.button('Small', size='sm') }}
+      {{ ui.button('Disabled', attrs={'disabled': True}) }}
+      <button class="btn btn-icon" aria-label="Print">{{ icon('printer', 18) }}</button>
+      {{ ui.confirm_button('#', 'Delete record', 'This permanently removes the record. This cannot be undone.', title='Delete this record?') }}
+    </div>
+  {% endcall %}
+  {% call ui.card('Status badges') %}
+    <div class="cluster mb-4">
+      {% for s in ['active', 'pending', 'suspended', 'trial', 'inactive', 'approved', 'overdue'] %}{{ ui.badge(s) }}{% endfor %}
+    </div>
+    {{ ui.alert('Your trial ends in 9 days.', 'warning') }}
+    <div class="mt-1"></div>
+    {{ ui.alert('Bank reconciliation completed.', 'success') }}
+  {% endcall %}
+</div>
+
+{# ---------- Notifications, modals, tabs, profiles ---------- #}
+<h3 class="mt-4">Notifications, dialogs, tabs and profiles</h3>
+<div class="grid grid-3 mb-4">
+  {% call ui.card('Toasts and dialogs') %}
+    <div class="cluster">
+      <button class="btn" data-demo-toast="Attendance saved for Sunday first service." data-kind="success">Success toast</button>
+      <button class="btn" data-demo-toast="Could not send SMS: insufficient credit." data-kind="danger">Error toast</button>
+      <button class="btn" data-modal-open="member-modal">Open modal</button>
+    </div>
+  {% endcall %}
+  {% call ui.card('Tabs') %}
+    <div class="tabs" role="tablist" aria-label="Sample tabs">
+      <button class="tab" role="tab" aria-selected="true" aria-controls="tp-1" id="t-1">Profile</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tp-2" id="t-2">Giving</button>
+      <button class="tab" role="tab" aria-selected="false" aria-controls="tp-3" id="t-3">Attendance</button>
+    </div>
+    <div id="tp-1" role="tabpanel" aria-labelledby="t-1" class="mt-4">
+      <dl class="kv"><dt>Member ID</dt><dd translate="no">CP-000124</dd><dt>Branch</dt><dd>Accra Central</dd><dt>Joined</dt><dd>10 Mar 2019</dd></dl>
+    </div>
+    <div id="tp-2" role="tabpanel" aria-labelledby="t-2" class="mt-4" hidden><p class="mb-0">GHS 6,240.00 given this year.</p></div>
+    <div id="tp-3" role="tabpanel" aria-labelledby="t-3" class="mt-4" hidden><p class="mb-0">Attended 41 of 46 Sundays.</p></div>
+  {% endcall %}
+  <div class="stack">
+    {% call ui.profile_card('Rev. Daniel Kwesi Amoah', 'Senior Pastor · Accra Central', badge_text='active') %}
+      {{ ui.button('Call', 'phone', size='sm') }}{{ ui.button('Email', 'mail', size='sm') }}
+    {% endcall %}
+    {% call ui.card() %}
+      <div class="cluster"><span class="chip" role="button" tabindex="0" aria-pressed="true">Members</span><span class="chip" role="button" tabindex="0" aria-pressed="false">Visitors</span><span class="chip" role="button" tabindex="0" aria-pressed="false">Children</span></div>
+    {% endcall %}
+  </div>
+</div>
+
+{% call ui.card('Empty state', flush=True) %}
+  {% call ui.empty_state('No pledges yet', 'Pledges you record for projects and fundraising will appear here.', 'piggy-bank') %}
+    {{ ui.button('Record a pledge', 'plus', 'primary') }}
+  {% endcall %}
+{% endcall %}
+
+{% call ui.modal('member-modal', 'Add a member') %}
+  <div class="modal-body">
+    <div class="form-grid">
+      {{ ui.input('m_first', 'First name', required=True) }}
+      {{ ui.input('m_last', 'Last name', required=True) }}
+      {{ ui.input('m_phone', 'Phone', type='tel', span=True) }}
+    </div>
+  </div>
+  <div class="modal-foot">
+    <button type="button" class="btn" data-modal-close>Cancel</button>
+    <button type="button" class="btn btn-primary" data-modal-close data-demo-toast="Member added." data-kind="success">Add member</button>
+  </div>
+{% endcall %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

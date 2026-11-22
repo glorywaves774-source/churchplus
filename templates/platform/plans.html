@@ -1,0 +1,25 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Plans{% endblock %}
+{% block content %}
+{{ ui.page_header('Plans and prices', 'Changes apply to new invoices. Leave a limit empty for unlimited.') }}
+<div class="grid grid-2">
+{% for p in rows %}
+  {% call ui.card(p.name, (counts.get(p.id, 0)) ~ ' churches · ' ~ p.code) %}
+    <form method="post" class="form-grid">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="plan" value="{{ p.public_id }}">
+      {{ ui.input('monthly_price', 'Monthly price (' ~ p.currency ~ ')', p.monthly_price if p.monthly_price is not none else '', attrs={'inputmode': 'decimal'}) }}
+      {{ ui.input('annual_price', 'Annual price', p.annual_price if p.annual_price is not none else '', attrs={'inputmode': 'decimal'}) }}
+      {{ ui.input('max_users', 'Staff users', p.max_users if p.max_users is not none else '', 'number') }}
+      {{ ui.input('max_members', 'Members', p.max_members if p.max_members is not none else '', 'number') }}
+      {{ ui.input('max_branches', 'Branches', p.max_branches if p.max_branches is not none else '', 'number') }}
+      {{ ui.input('trial_days', 'Trial days', p.trial_days, 'number') }}
+      {{ ui.input('description', 'Description', p.description or '', span=True) }}
+      <label class="check"><input type="checkbox" name="is_active" value="y"{% if p.is_active %} checked{% endif %}> Available</label>
+      <label class="check"><input type="checkbox" name="is_public" value="y"{% if p.is_public %} checked{% endif %}> Shown to churches</label>
+      {% if can_write %}<div class="field span-2"><button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Save {{ p.name }}</span></button></div>{% endif %}
+    </form>
+  {% endcall %}
+{% endfor %}
+</div>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Announcement{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit announcement' if a else 'New announcement') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card() %}
+  <div class="form-grid">
+    {{ ui.input('title', 'Title', form.get('title', a.title if a else ''), required=True, span=True) }}
+    <div class="field span-2"><label class="label" for="f-body">Announcement</label><textarea class="textarea" id="f-body" name="body" required>{{ form.get('body', a.body if a else '') }}</textarea></div>
+    {{ ui.select('audience', [('staff', 'Church staff only'), ('members', 'Members (portal)'), ('public', 'Everyone (website too)')], 'Shown to', form.get('audience', a.audience.value if a else 'members')) }}
+    <label class="check"><input type="checkbox" name="is_pinned" value="y"{% if form.get('is_pinned') or (not form and a and a.is_pinned) %} checked{% endif %}> Pin to the top</label>
+    {{ ui.input('starts_on', 'Show from', form.get('starts_on', a.starts_on.isoformat() if a else today.isoformat()), 'date') }}
+    {{ ui.input('ends_on', 'Show until', form.get('ends_on', a.ends_on.isoformat() if a and a.ends_on else ''), 'date', help='Leave empty to keep showing it.') }}
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('communication.announcements') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

@@ -1,0 +1,194 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ member.display_name }}{% endblock %}
+{% block content %}
+<section class="card member-hero mb-4">
+  {% if member.photo_key %}
+    <img class="member-photo" src="{{ url_for('members.photo', public_id=member.public_id) }}" alt="Photo of {{ member.display_name }}">
+  {% else %}
+    <span class="member-photo-placeholder" translate="no">{{ member.display_name|initials }}</span>
+  {% endif %}
+  <div class="min-w-0">
+    <h2 translate="no">{{ member.full_name }}</h2>
+    <div class="meta"><span translate="no">{{ member.membership_number }}</span>{% if member.branch %} · <span translate="no">{{ member.branch.name }}</span>{% endif %}</div>
+    <div class="cluster mt-1">{{ ui.badge(member.status.value) }}{% if member.is_baptised %}{{ ui.badge('Baptised', 'info') }}{% endif %}{% if member.family %}<a class="badge badge-gold plain" href="{{ url_for('members.family', public_id=member.family.public_id) }}" translate="no">{{ member.family.name }}</a>{% endif %}</div>
+  </div>
+  <div class="actions">
+    <a class="btn" href="{{ url_for('members.card', public_id=member.public_id) }}">{{ icon('id-card', 17) }}<span>ID card</span></a>
+    {% if can('members.edit') %}<a class="btn btn-primary" href="{{ url_for('members.edit', public_id=member.public_id) }}">{{ icon('edit', 17) }}<span>Edit</span></a>{% endif %}
+    {% set more = [] %}
+    {% if can('members.edit') %}{% set more = more + [('Change status', '#status', 'user-cog'), ('Transfer', '#transfer', 'repeat'), ('Family', '#family', 'users-round')] %}{% endif %}
+    {% if can('finance.view') %}{% set more = more + [('Giving statement', url_for('finance.statement', member_id=member.public_id), 'hand-coins')] %}{% endif %}
+    {% if can('members.export') %}{% set more = more + [('Download personal data', url_for('members.personal_data', public_id=member.public_id), 'download')] %}{% endif %}
+    {% if more %}{{ ui.dropdown('More actions', items=more) }}{% endif %}
+  </div>
+</section>
+
+<div class="tabs" role="tablist" aria-label="Member record">
+  <button class="tab" role="tab" aria-selected="true" aria-controls="p-overview" id="t-overview">Overview</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-family" id="t-family">Family</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-documents" id="t-documents">Documents ({{ member.documents|length }})</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="p-history" id="t-history">History</button>
+</div>
+
+<div class="tab-panels">
+<div id="p-overview" role="tabpanel" aria-labelledby="t-overview">
+  <div class="grid grid-3">
+    {% call ui.card('Personal') %}
+      <dl class="kv">
+        <dt>Gender</dt><dd>{{ member.gender.value|capitalize if member.gender else '—' }}</dd>
+        <dt>Date of birth</dt><dd>{{ member.date_of_birth.strftime('%d %b %Y') ~ ' (' ~ member.age ~ ')' if member.date_of_birth else '—' }}</dd>
+        <dt>Marital status</dt><dd>{{ member.marital_status.value|capitalize if member.marital_status else '—' }}</dd>
+        <dt>Occupation</dt><dd translate="no">{{ member.occupation or '—' }}{% if member.employer %} · {{ member.employer }}{% endif %}</dd>
+        <dt>Nationality</dt><dd translate="no">{{ member.nationality or '—' }}</dd>
+        <dt>Hometown</dt><dd translate="no">{{ member.hometown or '—' }}</dd>
+      </dl>
+    {% endcall %}
+    {% call ui.card('Contact') %}
+      <dl class="kv" translate="no">
+        <dt>Phone</dt><dd>{% if member.phone %}<a href="tel:{{ member.phone }}">{{ member.phone }}</a>{% else %}—{% endif %}{% if member.alt_phone %}<br>{{ member.alt_phone }}{% endif %}</dd>
+        <dt>Email</dt><dd>{% if member.email %}<a href="mailto:{{ member.email }}">{{ member.email }}</a>{% else %}—{% endif %}</dd>
+        <dt>Address</dt><dd>{{ [member.address, member.city, member.region]|select|join(', ') or '—' }}</dd>
+        <dt>GPS</dt><dd>{{ member.digital_address or '—' }}</dd>
+        <dt>Emergency</dt><dd>{% if member.emergency_name %}{{ member.emergency_name }}{% if member.emergency_relation %} ({{ member.emergency_relation }}){% endif %}<br>{{ member.emergency_phone or '' }}{% else %}—{% endif %}</dd>
+      </dl>
+    {% endcall %}
+    {% call ui.card('Church life') %}
+      <dl class="kv">
+        <dt>Joined</dt><dd>{{ member.date_joined.strftime('%d %b %Y') if member.date_joined else '—' }}</dd>
+        <dt>Previous church</dt><dd translate="no">{{ member.previous_church or '—' }}</dd>
+        <dt>Baptism</dt><dd translate="no">{% if member.is_baptised %}{{ member.baptism_date.strftime('%d %b %Y') if member.baptism_date else 'Yes' }}{% if member.baptism_place %}, {{ member.baptism_place }}{% endif %}{% if member.baptised_by %}<br>by {{ member.baptised_by }}{% endif %}{% else %}Not recorded{% endif %}</dd>
+        <dt>Birthday messages</dt><dd>{{ 'Yes' if member.allow_birthday_messages else 'No' }}</dd>
+      </dl>
+      {% if member.notes %}<p class="help mt-4 mb-0" translate="no">{{ member.notes }}</p>{% endif %}
+    {% endcall %}
+  </div>
+
+  {% if can('members.edit') %}
+  <div class="grid grid-3 mt-4">
+    {% call ui.card('Passport photograph', id='photo') %}
+      <form method="post" action="{{ url_for('members.upload_photo', public_id=member.public_id) }}" enctype="multipart/form-data" class="stack">
+        {{ photo_form.csrf_token }}{{ ui.field(photo_form.photo) }}
+        <button class="btn" type="submit">{{ icon('camera', 17) }}<span>Upload photo</span></button>
+      </form>
+    {% endcall %}
+    {% call ui.card('Change status', id='status') %}
+      <form method="post" action="{{ url_for('members.change_status', public_id=member.public_id) }}" class="stack">
+        {{ status_form.csrf_token }}{{ ui.field(status_form.status) }}{{ ui.field(status_form.effective_date) }}{{ ui.field(status_form.reason) }}
+        <button class="btn" type="submit">{{ icon('save', 17) }}<span>Update status</span></button>
+      </form>
+    {% endcall %}
+    {% call ui.card('Transfer', id='transfer') %}
+      <form method="post" action="{{ url_for('members.transfer', public_id=member.public_id) }}" class="stack" data-confirm="Record this transfer for {{ member.display_name }}?" data-confirm-action="Record transfer" data-confirm-title="Transfer member">
+        {{ transfer_form.csrf_token }}{{ ui.field(transfer_form.kind) }}{{ ui.field(transfer_form.branch) }}{{ ui.field(transfer_form.other_church, help='Only for transfers to another church.') }}{{ ui.field(transfer_form.effective_date) }}{{ ui.field(transfer_form.reason) }}
+        <button class="btn" type="submit">{{ icon('repeat', 17) }}<span>Record transfer</span></button>
+      </form>
+    {% endcall %}
+    {% call ui.card('Messages and member portal', id='preferences') %}
+      <form method="post" action="{{ url_for('communication.member_preferences', public_id=member.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label class="check"><input type="checkbox" name="sms" value="y"{% if not member.sms_opt_out %} checked{% endif %}> SMS from the church</label>
+        <label class="check"><input type="checkbox" name="email" value="y"{% if not member.email_opt_out %} checked{% endif %}> Emails from the church</label>
+        <label class="check"><input type="checkbox" name="whatsapp" value="y"{% if member.whatsapp_opt_in %} checked{% endif %}> Agreed to WhatsApp messages</label>
+        <label class="check"><input type="checkbox" name="birthday" value="y"{% if member.allow_birthday_messages %} checked{% endif %}> Birthday greetings</label>
+        <button class="btn" type="submit">{{ icon('save', 17) }}<span>Save preferences</span></button>
+      </form>
+      <div class="divider"></div>
+      {% if portal_account %}
+        <p class="help">{{ icon('check-circle-2', 14) }} Has member portal access ({{ portal_account.user.email }}).</p>
+        <form method="post" action="{{ url_for('portal.revoke', public_id=member.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ icon('user-x', 15) }}<span>Remove portal access</span></button></form>
+      {% elif member.email %}
+        <form method="post" action="{{ url_for('portal.invite', public_id=member.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ icon('send', 15) }}<span>Invite to member portal</span></button></form>
+        <p class="help">An email goes to {{ member.email }} to choose a password.</p>
+      {% else %}<p class="help">Add an email address to invite this member to the portal.</p>{% endif %}
+    {% endcall %}
+  </div>
+  {% endif %}
+</div>
+
+<div id="p-family" role="tabpanel" aria-labelledby="t-family" hidden>
+  <div class="grid grid-2">
+    {% call ui.card(member.family.name if member.family else 'No family linked', flush=True) %}
+      {% if member.family %}
+      <ul class="feed">
+        {% for fm in member.family.members %}
+        <li><span class="feed-icon">{{ icon('user-round', 16) }}</span>
+          <div class="min-w-0"><a class="feed-text" href="{{ url_for('members.profile', public_id=fm.public_id) }}" translate="no">{{ fm.display_name }}</a>
+          <div class="feed-time">{{ fm.family_role.value|capitalize if fm.family_role else 'Member' }}{% if fm.id == member.id %} · this member{% endif %}</div></div></li>
+        {% endfor %}
+      </ul>
+      {% else %}{{ ui.empty_state('Not in a family yet', 'Link family members so households can be seen together.', 'users-round') }}{% endif %}
+    {% endcall %}
+    {% if can('members.edit') %}
+    {% call ui.card('Link to a family', id='family') %}
+      <form method="post" action="{{ url_for('members.set_family', public_id=member.public_id) }}" class="stack">
+        {{ family_form.csrf_token }}{{ ui.field(family_form.family) }}{{ ui.field(family_form.new_family_name, placeholder='e.g. The Mensah Family') }}{{ ui.field(family_form.role) }}
+        <div class="cluster"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button></div>
+      </form>
+      {% if member.family %}<div class="mt-1">{{ ui.confirm_button(url_for('members.leave_family', public_id=member.public_id), 'Remove from family', member.display_name ~ ' will be removed from ' ~ member.family.name ~ '.', 'Remove', 'user-minus', 'ghost', 'sm') }}</div>{% endif %}
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+<div id="p-documents" role="tabpanel" aria-labelledby="t-documents" hidden>
+  <div class="grid grid-main-side" id="documents">
+    {% call ui.card('Documents') %}
+      {% if member.documents %}
+      <ul class="doc-list">
+        {% for d in member.documents %}
+        <li><span class="feed-icon">{{ icon('file-text', 16) }}</span>
+          <div class="grow"><div class="person-name" translate="no">{{ d.title }}</div><div class="person-sub">{{ d.category|capitalize }} · {{ (d.size / 1024)|round|int }} KB · {{ d.created_at.strftime('%d %b %Y') }}</div></div>
+          <a class="btn btn-sm" href="{{ url_for('members.download_document', public_id=member.public_id, doc_id=d.public_id) }}">{{ icon('download', 15) }}<span class="hide-phone">Download</span></a>
+          {% if can('members.edit') %}{{ ui.confirm_button(url_for('members.delete_document', public_id=member.public_id, doc_id=d.public_id), '', 'Delete “' ~ d.title ~ '”?', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}{{ ui.empty_state('No documents', 'Baptism and marriage certificates, transfer letters and forms can be kept here.', 'files') }}{% endif %}
+    {% endcall %}
+    {% if can('members.edit') %}
+    {% call ui.card('Upload a document') %}
+      <form method="post" action="{{ url_for('members.upload_document', public_id=member.public_id) }}" enctype="multipart/form-data" class="stack">
+        {{ doc_form.csrf_token }}{{ ui.field(doc_form.title) }}{{ ui.field(doc_form.category) }}{{ ui.field(doc_form.file) }}
+        <button class="btn" type="submit">{{ icon('upload', 17) }}<span>Upload</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+
+<div id="p-history" role="tabpanel" aria-labelledby="t-history" hidden>
+  <div class="grid grid-2 mb-4">
+    {% call ui.card('Recent attendance', flush=True) %}
+      {% if attendance %}<ul class="feed">{% for r in attendance %}<li><span class="feed-icon">{{ icon('qr-code' if r.method.value == 'qr' else 'church', 16) }}</span><div><div class="feed-text">{{ r.service.title }}</div><div class="feed-time">{{ r.service.service_date.strftime('%a %d %b %Y') }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No attendance recorded', icon_name='clipboard-check') }}{% endif %}
+    {% endcall %}
+    {% call ui.card('Departments and ministries', flush=True) %}
+      {% if departments %}<ul class="feed">{% for d in departments %}<li><span class="feed-icon">{{ icon('network', 16) }}</span><div><a class="feed-text" href="{{ url_for('departments.detail', public_id=d.department.public_id) }}">{{ d.department.name }}</a><div class="feed-time">{{ d.role }} since {{ d.joined_on.strftime('%b %Y') }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('Not in any department', icon_name='network') }}{% endif %}
+    {% endcall %}
+  </div>
+  <div class="grid grid-2">
+    {% call ui.card('Status history') %}
+      <ul class="timeline">
+        {% for h in member.history %}
+        <li><strong>{{ (h.from_status ~ ' → ' if h.from_status else '') ~ h.to_status }}</strong> · {{ h.effective_date.strftime('%d %b %Y') }}{% if h.reason %}<br><span class="help">{{ h.reason }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+    {% endcall %}
+    {% call ui.card('Transfers') %}
+      {% if member.transfers %}
+      <ul class="timeline">
+        {% for t in member.transfers %}
+        <li><strong>{% if t.kind.value == 'branch' %}{{ t.from_branch.name if t.from_branch else '—' }} → {{ t.to_branch.name if t.to_branch else '—' }}{% elif t.kind.value == 'out' %}To {{ t.other_church }}{% else %}From {{ t.other_church }}{% endif %}</strong> · {{ t.effective_date.strftime('%d %b %Y') }}{% if t.reason %}<br><span class="help">{{ t.reason }}</span>{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="text-muted mb-0">No transfers recorded.</p>{% endif %}
+    {% endcall %}
+  </div>
+  {% if can('members.delete') %}
+  <div class="mt-4">{{ ui.confirm_button(url_for('members.delete', public_id=member.public_id), 'Permanently delete record', 'This erases ' ~ member.display_name ~ "'s record, photo and documents. Use this only for data-protection erasure requests; otherwise change the status.", 'Delete permanently', 'trash-2', 'danger', 'sm', 'Delete member record?') }}</div>
+  {% endif %}
+</div>
+</div>
+{% endblock %}

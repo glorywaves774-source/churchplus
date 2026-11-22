@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Giving statement · {{ member.display_name }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Giving statement ' ~ year, member.full_name ~ ' · ' ~ member.membership_number) %}
+  <form method="get" class="cluster"><select class="select" name="year" aria-label="Year">{% for y in range(year - 5, year + 1)|reverse %}<option value="{{ y }}"{% if y == year %} selected{% endif %}>{{ y }}</option>{% endfor %}</select><button class="btn" type="submit">Show</button></form>
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+<section class="card">
+  <div class="card-body">
+    <p translate="no"><strong>{{ g.tenant.name }}</strong><br><span class="help">{{ [g.tenant.address_line1, g.tenant.city]|select|join(', ') }}</span></p>
+    <p>This confirms the contributions received from <strong translate="no">{{ member.full_name }}</strong> between 1 January and 31 December {{ year }}.</p>
+  </div>
+  {% if data.rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Date</th><th>Receipt</th><th>Type</th><th class="col-num">Amount</th></tr></thead>
+    <tbody>
+      {% for c in data.rows %}<tr><td class="nowrap">{{ c.received_on.strftime('%d %b %Y') }}</td><td class="nowrap">{{ c.receipt_number }}</td><td class="wrap">{{ c.income_account.name }}</td><td class="num">{{ c.amount|money(plain=True) }}</td></tr>{% endfor %}
+    </tbody>
+    <tfoot>
+      {% for name, amt in data.by_type %}<tr><td colspan="3" class="num">{{ name }}</td><td class="num">{{ amt|money(plain=True) }}</td></tr>{% endfor %}
+      <tr class="total-row"><td colspan="3" class="num">Total</td><td class="num">{{ data.total|money }}</td></tr>
+    </tfoot>
+  </table></div>
+  {% else %}{{ ui.empty_state('No contributions recorded in ' ~ year, icon_name='hand-coins') }}{% endif %}
+</section>
+{% endblock %}

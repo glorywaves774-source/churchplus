@@ -1,0 +1,12 @@
+{% extends "layouts/public.html" %}
+{% block title %}Events · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">Events</h1>
+{% if rows %}<div class="grid grid-2">{% for e in rows %}
+  {% call ui.card(e.title, e.starts_at.strftime('%A %d %B, %H:%M') ~ (' · ' ~ e.venue if e.venue else '')) %}
+    {% if e.description %}<p>{{ e.description|truncate(220) }}</p>{% endif %}
+    <a class="btn btn-sm" href="{{ url_for('website.site_event', public_id=e.public_id) }}">{{ icon('arrow-right', 15) }}<span>{{ 'Details and registration' if e.requires_registration else 'Details' }}</span></a>
+  {% endcall %}
+{% endfor %}</div>
+{% else %}<section class="card">{{ ui.empty_state('No upcoming events', icon_name='calendar-days') }}</section>{% endif %}
+{% endblock %}

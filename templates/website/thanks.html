@@ -1,0 +1,5 @@
+{% extends "layouts/public.html" %}
+{% block content %}
+<section class="card site-form">{{ ui.empty_state(title, text, 'check-circle-2') }}
+<p class="mt-4"><a class="btn" href="{{ url_for('website.site_home') }}">{{ icon('home', 16) }}<span>Back to the home page</span></a></p></section>
+{% endblock %}

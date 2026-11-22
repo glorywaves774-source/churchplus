@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Sermons{% endblock %}
+{% block content %}
+{% call ui.page_header('Sermons and media') %}
+  {{ ui.button('Media library', 'image', href=url_for('sermons.media')) }}
+  {% if can('sermons.create') %}{{ ui.button('Add sermon', 'plus', 'primary', href=url_for('sermons.create')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  {{ ui.filter_bar(url_for('sermons.index'), q, 'Search title, preacher, scripture') }}
+  {% if all_series %}<div class="filter-bar">
+    <a class="chip" href="{{ url_for('sermons.index', q=q or None) }}" aria-pressed="{{ 'false' if series else 'true' }}">All series</a>
+    {% for s in all_series %}<a class="chip" href="{{ url_for('sermons.index', series=s, q=q or None) }}" aria-pressed="{{ 'true' if s == series else 'false' }}">{{ s }}</a>{% endfor %}
+  </div>{% endif %}
+  {% if page.items %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Date</th><th>Sermon</th><th>Preacher</th><th>Scripture</th><th>Media</th><th>Shown to</th></tr></thead>
+    <tbody>{% for s in page.items %}<tr>
+      <td class="nowrap">{{ s.preached_on.strftime('%d %b %Y') }}</td>
+      <td class="wrap"><a class="person-name" href="{{ url_for('sermons.detail', public_id=s.public_id) }}">{{ s.title }}</a>{% if s.series %}<div class="person-sub">{{ s.series }}</div>{% endif %}</td>
+      <td class="wrap" translate="no">{{ s.preacher }}</td>
+      <td class="wrap">{{ s.scripture or '—' }}</td>
+      <td class="nowrap">{% if s.video_url %}{{ icon('video', 15, label='Video') }} {% endif %}{% if s.audio_url %}{{ icon('music', 15, label='Audio') }} {% endif %}{% if s.media %}<span class="person-sub">{{ s.media|length }} file{{ 's' if s.media|length != 1 }}</span>{% endif %}</td>
+      <td>{{ ui.badge(s.visibility.value, {'staff': '', 'members': 'info', 'public': 'success'}[s.visibility.value]) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {{ ui.pagination(page, 'sermons.index', params) }}
+  {% else %}{{ ui.empty_state('No sermons found', 'Add sermons with their scripture, notes and recordings so members can catch up.', 'book-open') }}{% endif %}
+</section>
+{% endblock %}

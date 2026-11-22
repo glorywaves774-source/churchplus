@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Member churches{% endblock %}
+{% block content %}
+{% call ui.page_header('Member churches', 'Churches in your denomination. Each keeps its own private records.') %}
+  {% if can('church.manage_settings') %}{{ ui.button('Add member church', 'plus', 'primary', href=url_for('tenants.member_church_create')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  {% if churches %}
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead><tr><th data-sort="text">Church</th><th data-sort="text">City</th><th data-sort="number" class="col-num">Branches</th><th data-sort="number" class="col-num">Users</th><th>Status</th><th data-sort="date">Joined</th></tr></thead>
+      <tbody>
+        {% for c in churches %}
+        <tr>
+          <td class="wrap"><strong translate="no">{{ c.name }}</strong></td>
+          <td class="wrap" translate="no">{{ c.city or '—' }}</td>
+          <td class="num">{{ c.branches }}</td>
+          <td class="num">{{ c.users }}</td>
+          <td>{{ ui.badge(c.status) }}</td>
+          <td class="nowrap" data-value="{{ c.created_at.isoformat() }}">{{ c.created_at.strftime('%d %b %Y') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {% call ui.empty_state('No member churches yet', 'Add the churches in your denomination. Each one gets its own workspace and administrator.', 'church') %}
+      {% if can('church.manage_settings') %}{{ ui.button('Add member church', 'plus', 'primary', href=url_for('tenants.member_church_create')) }}{% endif %}
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

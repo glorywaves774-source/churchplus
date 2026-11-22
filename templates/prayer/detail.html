@@ -1,0 +1,49 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Prayer request{% endblock %}
+{% block content %}
+{% call ui.page_header(p.display_name, p.category ~ ' · received ' ~ p.created_at.strftime('%d %b %Y')) %}
+  {{ ui.badge(p.status.value, {'open': 'info', 'praying': 'warning', 'answered': 'success', 'closed': ''}[p.status.value]) }}
+{% endcall %}
+{% if p.is_confidential %}<p class="lock-note mb-4">{{ icon('lock', 15) }} Confidential. Only the person assigned and pastors who approve prayer can see this. Opening it is recorded.</p>{% endif %}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Request') %}
+      <div class="prose pre-wrap">{{ p.request }}</div>
+      <dl class="kv mt-4">
+        {% if p.member %}<dt>Member</dt><dd><a href="{{ url_for('members.profile', public_id=p.member.public_id) }}" translate="no">{{ p.member.display_name }}</a></dd>{% endif %}
+        {% set phone = p.phone or (p.member.phone if p.member else None) %}
+        {% if phone %}<dt>Phone</dt><dd translate="no"><a href="tel:{{ phone }}">{{ phone }}</a></dd>{% endif %}
+        <dt>Wants a call</dt><dd>{{ 'Yes' if p.wants_contact else 'No' }}</dd>
+        <dt>Came from</dt><dd>{{ {'staff': 'Entered by church staff', 'website': 'Church website', 'portal': 'Member portal'}.get(p.source, p.source) }}</dd>
+        <dt>Assigned to</dt><dd translate="no">{{ p.assigned_to.display_name if p.assigned_to else 'Nobody' }}{% if p.team %} · {{ p.team.name }}{% endif %}</dd>
+      </dl>
+    {% endcall %}
+    {% call ui.card('Follow-up notes', flush=True) %}
+      {% if p.updates %}<ul class="feed">{% for u in p.updates %}<li><span class="feed-icon">{{ icon('message-square', 16) }}</span><div class="grow"><div class="feed-text pre-wrap">{{ u.note }}</div><div class="feed-time" translate="no">{{ u.author.full_name if u.author else '' }} · {{ u.created_at.strftime('%d %b %Y %H:%M') }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No notes yet', icon_name='message-square') }}{% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack no-print">
+    {% if can_manage %}
+    {% call ui.card('Update') %}
+      <form method="post" action="{{ url_for('prayer.update', public_id=p.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% set st_options = [] %}{% for s in statuses %}{% set _ = st_options.append((s.value, {'open': 'New', 'praying': 'Praying', 'answered': 'Answered', 'closed': 'Closed'}[s.value])) %}{% endfor %}
+        {{ ui.select('status', st_options, 'Status', p.status.value) }}
+        {% if can('prayer.edit') %}
+          {% set acc_options = [] %}{% for a in accounts %}{% set _ = acc_options.append((a.public_id, a.display_name)) %}{% endfor %}
+          {{ ui.select('assigned_to', acc_options, 'Assign to', p.assigned_to.public_id if p.assigned_to else '', placeholder='Nobody') }}
+          {% set team_options = [] %}{% for d in teams %}{% set _ = team_options.append((d.public_id, d.name)) %}{% endfor %}
+          {{ ui.select('team', team_options, 'Prayer team', p.team.public_id if p.team else '', placeholder='—') }}
+          <label class="check"><input type="checkbox" name="is_confidential" value="y"{% if p.is_confidential %} checked{% endif %}> Confidential</label>
+        {% endif %}
+        <div class="field"><label class="label" for="f-note">Add a note</label><textarea class="textarea" id="f-note" name="note" placeholder="e.g. Called her on Tuesday, she is recovering well"></textarea></div>
+        <button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Save</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% if can('prayer.delete') %}{{ ui.confirm_button(url_for('prayer.delete', public_id=p.public_id), 'Delete request', 'Delete this prayer request and its notes?', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

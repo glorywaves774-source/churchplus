@@ -1,0 +1,40 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ inv.number }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Invoice ' ~ inv.number, inv.description) %}
+  {{ ui.badge(inv.status.value, {'open': 'warning', 'paid': 'success', 'void': ''}[inv.status.value]) }}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+<div class="grid grid-main-side">
+  {% call ui.card() %}
+    <div class="invoice-head"><div><strong>ChurchPlus</strong><br><span class="person-sub">Kayron Global Tech Services</span></div><div class="text-right"><strong translate="no">{{ g.tenant.name }}</strong><br><span class="person-sub" translate="no">{{ [g.tenant.address_line1, g.tenant.city]|select|join(', ') }}</span></div></div>
+    <dl class="kv mt-4">
+      <dt>Invoice</dt><dd>{{ inv.number }}</dd><dt>Issued</dt><dd>{{ inv.created_at|localtime('%d %b %Y') }}</dd>
+      <dt>Due</dt><dd>{{ inv.due_on.strftime('%d %b %Y') }}</dd><dt>Period</dt><dd>{{ inv.period_start.strftime('%d %b %Y') }} – {{ inv.period_end.strftime('%d %b %Y') }}</dd>
+      {% if inv.paid_at %}<dt>Paid</dt><dd>{{ inv.paid_at|localtime('%d %b %Y') }}</dd>{% endif %}
+      {% if inv.note %}<dt>Note</dt><dd>{{ inv.note }}</dd>{% endif %}
+    </dl>
+    <div class="table-wrap mt-4"><table class="table"><thead><tr><th>Description</th><th class="col-num">Amount</th></tr></thead>
+      <tbody><tr><td class="wrap">{{ inv.description }}</td><td class="num">{{ inv.amount|money(inv.currency) }}</td></tr></tbody>
+      <tfoot><tr><th>Total</th><th class="num">{{ inv.amount|money(inv.currency) }}</th></tr></tfoot></table></div>
+  {% endcall %}
+  <div class="stack no-print">
+    {% if inv.status.value == 'open' and can('billing.manage_settings') %}
+    {% call ui.card('Pay now') %}
+      {% if providers %}
+      <form method="post" action="{{ url_for('billing.pay', public_id=inv.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% for p in providers %}<label class="check"><input type="radio" name="provider" value="{{ p }}"{% if loop.first %} checked{% endif %}> {{ {'paystack': 'Card or mobile money (Paystack)', 'hubtel': 'Mobile money or card (Hubtel)', 'test': 'Test payment (development only)'}[p] }}</label>{% endfor %}
+        <button class="btn btn-primary" type="submit">{{ icon('credit-card', 16) }}<span>Pay {{ inv.amount|money(inv.currency) }}</span></button>
+      </form>
+      <p class="help mt-4">You will be taken to the secure payment page and brought back here.</p>
+      {% else %}<p>Online payment is not set up yet. Pay by bank transfer or MoMo and send the reference to ChurchPlus support.</p>{% endif %}
+    {% endcall %}
+    {% endif %}
+    {% if inv.payments %}{% call ui.card('Payments', flush=True) %}
+      <ul class="feed">{% for p in inv.payments %}<li><span class="feed-icon">{{ icon('banknote', 16) }}</span><div class="grow"><div class="feed-text">{{ p.provider|capitalize }} · {{ p.reference }}</div><div class="feed-time">{{ p.created_at|localtime }}</div></div>{{ ui.badge(p.status.value, {'success': 'success', 'pending': 'info', 'failed': 'danger'}[p.status.value]) }}</li>{% endfor %}</ul>
+    {% endcall %}{% endif %}
+  </div>
+</div>
+{% endblock %}

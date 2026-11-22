@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ visitor.display_name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(visitor.display_name, 'First visited ' ~ visitor.first_visit_date.strftime('%d %B %Y') ~ (' · ' ~ visitor.service.title if visitor.service else '')) %}
+  {% if visitor.converted_member %}{{ ui.button('Member record', 'user-round', href=url_for('members.profile', public_id=visitor.converted_member.public_id)) }}
+  {% elif can('visitors.edit') and can('members.create') and member_room %}
+    {{ ui.confirm_button(url_for('visitors.convert', public_id=visitor.public_id), 'Make a member', visitor.display_name ~ ' will be registered as a member with a new membership number.', 'Register as member', 'user-check', 'primary', '', 'Register as a member?') }}
+  {% endif %}
+  {% if can('visitors.edit') %}{{ ui.button('Edit', 'edit', href=url_for('visitors.edit', public_id=visitor.public_id)) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-3 mb-4">
+  {% call ui.card('Contact') %}
+    <dl class="kv" translate="no">
+      <dt>Status</dt><dd>{{ ui.badge(visitor.status.value) }}</dd>
+      <dt>Phone</dt><dd>{% if visitor.phone %}<a href="tel:{{ visitor.phone }}">{{ visitor.phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>Email</dt><dd>{{ visitor.email or '—' }}</dd>
+      <dt>Area</dt><dd>{{ [visitor.address, visitor.city]|select|join(', ') or '—' }}</dd>
+      <dt>Branch</dt><dd>{{ visitor.branch.name if visitor.branch else '—' }}</dd>
+    </dl>
+  {% endcall %}
+  {% call ui.card('About the visit') %}
+    <dl class="kv">
+      <dt>Heard through</dt><dd>{{ visitor.how_heard or '—' }}</dd>
+      <dt>Invited by</dt><dd translate="no">{% if visitor.invited_by %}<a href="{{ url_for('members.profile', public_id=visitor.invited_by.public_id) }}">{{ visitor.invited_by.display_name }}</a>{% else %}—{% endif %}</dd>
+      <dt>Current church</dt><dd translate="no">{{ visitor.current_church or 'None' }}</dd>
+      <dt>Wants</dt><dd>{{ ['a visit or call' if visitor.wants_visit, 'membership' if visitor.wants_membership]|select|join(', ') or '—' }}</dd>
+      <dt>Visits</dt><dd>{{ visits|length }}</dd>
+    </dl>
+  {% endcall %}
+  {% call ui.card('Prayer and notes') %}
+    {% if visitor.prayer_request %}<p translate="no"><strong>Prayer:</strong> {{ visitor.prayer_request }}</p>{% endif %}
+    {% if visitor.notes %}<p class="mb-0" translate="no">{{ visitor.notes }}</p>{% endif %}
+    {% if not visitor.prayer_request and not visitor.notes %}<p class="text-muted mb-0">Nothing recorded.</p>{% endif %}
+  {% endcall %}
+</div>
+
+<div class="grid grid-main-side">
+  {% call ui.card('Follow-ups') %}
+    {% if visitor.follow_ups %}
+    <ul class="timeline">
+      {% for f in visitor.follow_ups %}
+      <li>
+        <strong>{{ f.method.value|capitalize|replace('Sms', 'SMS')|replace('Whatsapp', 'WhatsApp') }}</strong> · due {{ f.due_date.strftime('%a %d %b') }}{% if f.assigned_to %} · <span translate="no">{{ f.assigned_to.user.full_name }}</span>{% endif %}
+        {% if f.completed_at %}<br>{{ ui.badge('Done', 'success') }} <span class="help" translate="no">{{ f.outcome }}</span>
+        {% else %}
+          {% if f.due_date < today %} {{ ui.badge('Overdue', 'danger') }}{% endif %}
+          {% if can('visitors.edit') %}
+          <details class="mt-1"><summary class="btn btn-sm">Record outcome</summary>
+            <form method="post" action="{{ url_for('visitors.complete_follow_up', public_id=visitor.public_id, fu_id=f.public_id) }}" class="stack mt-1">
+              {{ outcome_form.csrf_token }}{{ ui.field(outcome_form.outcome) }}{{ ui.field(outcome_form.new_status) }}
+              <button class="btn btn-primary btn-sm" type="submit">{{ icon('check', 15) }}<span>Mark done</span></button>
+            </form>
+          </details>
+          {% endif %}
+        {% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="text-muted mb-0">No follow-ups yet.</p>{% endif %}
+  {% endcall %}
+  <div class="stack">
+    {% if can('visitors.edit') and visitor.status.value != 'converted' %}
+    {% call ui.card('Schedule a follow-up') %}
+      <form method="post" action="{{ url_for('visitors.add_follow_up', public_id=visitor.public_id) }}" class="stack">
+        {{ fu_form.csrf_token }}{{ ui.field(fu_form.due_date) }}{{ ui.field(fu_form.method) }}{{ ui.field(fu_form.assigned_to) }}
+        <button class="btn" type="submit">{{ icon('calendar-plus', 17) }}<span>Schedule</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% call ui.card('Attendance', flush=True) %}
+      {% if visits %}<ul class="feed">{% for r in visits %}<li><span class="feed-icon">{{ icon('church', 16) }}</span><div><div class="feed-text">{{ r.service.title }}</div><div class="feed-time">{{ r.service.service_date.strftime('%a %d %b %Y') }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No services recorded', icon_name='church') }}{% endif %}
+    {% endcall %}
+    {% if can('visitors.delete') %}{{ ui.confirm_button(url_for('visitors.delete', public_id=visitor.public_id), 'Delete visitor', 'This removes the visitor record and its follow-ups.', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

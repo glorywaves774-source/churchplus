@@ -1,0 +1,80 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ c.member.display_name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(c.member.display_name, (c.member.age ~ ' years · ' if c.member.age is not none else '') ~ (c.child_class.name if c.child_class else 'No class')) %}
+  {% if can('children.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('children.edit', public_id=c.public_id)) }}{% endif %}
+{% endcall %}
+{% if c.allergies %}{{ ui.alert(c.allergies, 'danger', 'Allergy') }}{% endif %}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Check-in today', id='checkout') %}
+      {% if active %}
+        <p>{{ ui.badge('In class', 'success') }} since {{ active.checked_in_at|localtime('%H:%M') }}{% if active.dropped_off_by %}, dropped off by <span translate="no">{{ active.dropped_off_by }}</span>{% endif %}.</p>
+        {% if can('children.create') %}
+        <form method="post" action="{{ url_for('children.check_out', public_id=c.public_id) }}" class="form-grid mt-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ ui.input('code', 'Pick-up code from the parent label', required=True, attrs={'inputmode': 'numeric', 'autocomplete': 'off', 'maxlength': 8}) }}
+          {% set go = [] %}{% for gd in c.guardians if gd.is_authorized_pickup %}{% set _ = go.append((gd.public_id, gd.display_name ~ ' (' ~ gd.relationship_to_child ~ ')')) %}{% endfor %}
+          {{ ui.select('guardian', go, 'Collected by', placeholder='Someone else (write the name)') }}
+          {{ ui.input('collected_by', 'Name, if not listed') }}
+          <div class="field"><span class="label label-spacer" aria-hidden="true">&nbsp;</span><button class="btn btn-primary" type="submit">{{ icon('log-out', 16) }}<span>Check out</span></button></div>
+        </form>
+        <p class="mt-4"><a href="{{ url_for('children.label', checkin_id=active.public_id) }}">{{ icon('printer', 14) }} Reprint labels</a></p>
+        {% endif %}
+      {% elif can('children.create') %}
+        <form method="post" action="{{ url_for('children.check_in', public_id=c.public_id) }}" class="form-grid">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          {{ ui.input('dropped_off_by', 'Dropped off by') }}
+          {% set so = [] %}{% for s in services %}{% set _ = so.append((s.public_id, s.title ~ (' ' ~ s.start_time.strftime('%H:%M') if s.start_time else ''))) %}{% endfor %}
+          {{ ui.select('service', so, 'Also mark present at', placeholder='No service') }}
+          <div class="field"><span class="label label-spacer" aria-hidden="true">&nbsp;</span><button class="btn btn-primary" type="submit">{{ icon('log-in', 16) }}<span>Check in and print labels</span></button></div>
+        </form>
+      {% else %}<p>Not checked in.</p>{% endif %}
+    {% endcall %}
+    {% call ui.card('Guardians and pick-up', id='guardians', flush=True) %}
+      {% if c.guardians %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Name</th><th>Relationship</th><th>Phone</th><th>May collect</th><th class="col-actions"></th></tr></thead>
+        <tbody>{% for gd in c.guardians %}<tr>
+          <td class="wrap" translate="no">{{ gd.display_name }}{% if gd.pickup_restriction %}<div class="restriction">{{ icon('shield-alert', 13) }} {{ gd.pickup_restriction }}</div>{% endif %}</td>
+          <td class="nowrap">{{ gd.relationship_to_child }}</td>
+          <td class="nowrap" translate="no">{% if gd.contact %}<a href="tel:{{ gd.contact }}">{{ gd.contact }}</a>{% else %}—{% endif %}</td>
+          <td>{% if can('children.edit') %}<form method="post" action="{{ url_for('children.guardian_action', public_id=c.public_id, guardian_id=gd.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle"><button class="btn btn-sm {{ '' if gd.is_authorized_pickup else 'btn-ghost' }}" type="submit" aria-pressed="{{ 'true' if gd.is_authorized_pickup else 'false' }}">{{ 'Yes' if gd.is_authorized_pickup else 'No' }}</button></form>{% else %}{{ 'Yes' if gd.is_authorized_pickup else 'No' }}{% endif %}</td>
+          <td class="col-actions">{% if can('children.edit') %}<form method="post" action="{{ url_for('children.guardian_action', public_id=c.public_id, guardian_id=gd.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="remove"><button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="Remove {{ gd.display_name }}">{{ icon('x', 15) }}</button></form>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}{{ ui.empty_state('No guardians yet', 'Add the people allowed to collect this child.', 'users') }}{% endif %}
+      {% if can('children.edit') %}
+      <form method="post" action="{{ url_for('children.add_guardian', public_id=c.public_id) }}" class="card-body form-grid no-print">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('number', 'Membership number', placeholder='If they are a member') }}
+        {{ ui.input('name', 'Or name') }}
+        {{ ui.input('phone', 'Phone', type='tel') }}
+        {% set ro = [] %}{% for r in relationships %}{% set _ = ro.append((r, r)) %}{% endfor %}
+        {{ ui.select('relationship', ro, 'Relationship') }}
+        {{ ui.input('restriction', 'Restriction or court order note', span=True, placeholder='Leave empty if none') }}
+        <label class="check"><input type="checkbox" name="authorized" value="y" checked> May collect this child</label>
+        <div class="field"><button class="btn btn-sm" type="submit">{{ icon('user-plus', 15) }}<span>Add guardian</span></button></div>
+      </form>
+      {% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack">
+    {% call ui.card('Care information') %}
+      <dl class="kv">
+        <dt>Membership no.</dt><dd><a href="{{ url_for('members.profile', public_id=c.member.public_id) }}">{{ c.member.membership_number }}</a></dd>
+        {% if c.member.date_of_birth %}<dt>Birthday</dt><dd>{{ c.member.date_of_birth.strftime('%d %B %Y') }}</dd>{% endif %}
+        <dt>School</dt><dd>{{ c.school or '—' }}</dd>
+        <dt>Medical</dt><dd class="pre-wrap">{{ c.medical_notes or 'None recorded' }}</dd>
+        <dt>Support</dt><dd class="pre-wrap">{{ c.special_needs or 'None recorded' }}</dd>
+        <dt>Photos</dt><dd>{{ 'Allowed' if c.photo_consent else 'Not allowed' }}</dd>
+      </dl>
+    {% endcall %}
+    {% call ui.card('Recent check-ins', flush=True) %}
+      {% if history %}<ul class="feed">{% for h in history %}<li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span><div class="grow"><div class="feed-text">{{ h.check_in_date.strftime('%a %d %b %Y') }}</div><div class="feed-time">in {{ h.checked_in_at|localtime('%H:%M') }}{% if h.checked_out_at %} · out {{ h.checked_out_at|localtime('%H:%M') }} · <span translate="no">{{ h.collected_by_name }}</span>{% else %} · not collected{% endif %}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No check-ins yet', icon_name='log-in') }}{% endif %}
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

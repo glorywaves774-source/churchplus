@@ -1,0 +1,10 @@
+{% extends "layouts/public.html" %}
+{% block title %}Sermons · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">Sermons</h1>
+<section class="card">
+  {% if page.items %}<ul class="feed">{% for s in page.items %}<li><span class="feed-icon">{{ icon('book-open', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('website.site_sermon', public_id=s.public_id) }}">{{ s.title }}</a><div class="feed-time" translate="no">{{ s.preacher }} · {{ s.preached_on.strftime('%d %b %Y') }}{% if s.scripture %} · {{ s.scripture }}{% endif %}</div></div></li>{% endfor %}</ul>
+  {{ ui.pagination(page, 'website.site_sermons') }}
+  {% else %}{{ ui.empty_state('No sermons yet', icon_name='book-open') }}{% endif %}
+</section>
+{% endblock %}

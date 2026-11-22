@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Service offering{% endblock %}
+{% block content %}
+{{ ui.page_header('Record a service offering', 'Enter the counted totals for a service, one line per type of giving and where it was paid in.') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card() %}
+    <div class="field">
+      <label class="label" for="f-service">Service<span class="req" aria-hidden="true">*</span></label>
+      <select class="select" id="f-service" name="service" required><option value="">Choose a service</option>{% for s in services %}<option value="{{ s.public_id }}">{{ s.title }} – {{ s.service_date.strftime('%a %d %b %Y') }}</option>{% endfor %}</select>
+      {% if not services %}<span class="help">Schedule the service first under Services.</span>{% endif %}
+    </div>
+  {% endcall %}
+  {% call ui.card('Counted amounts', flush=True) %}
+  <div class="table-wrap"><table class="table rows-table">
+    <thead><tr><th>Type</th><th>Amount ({{ g.tenant.currency }})</th><th>Paid into</th><th>Method</th></tr></thead>
+    <tbody>
+      {% set defaults = ['Offerings', 'Tithes', 'Special offerings', 'Welfare contributions'] %}
+      {% for i in range(5) %}
+      <tr>
+        <td><select class="select" name="line_type" aria-label="Type">{% for a in income_accounts %}<option value="{{ a.public_id }}"{% if i < 4 and a.name == defaults[i] %} selected{% endif %}>{{ a.name }}</option>{% endfor %}</select></td>
+        <td><input class="input num-input" name="line_amount" inputmode="decimal" placeholder="0.00" aria-label="Amount"></td>
+        <td><select class="select" name="line_account" aria-label="Paid into">{% for a in money_accounts %}<option value="{{ a.public_id }}">{{ a.name }}</option>{% endfor %}</select></td>
+        <td><select class="select" name="line_method" aria-label="Method">{% for v, t in methods %}<option value="{{ v }}">{{ t }}</option>{% endfor %}</select></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('finance.giving') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Record offering</span></button>
+  </div>
+</form>
+{% endblock %}

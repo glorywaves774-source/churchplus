@@ -1,0 +1,19 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}Transfer money{% endblock %}
+{% block content %}
+{{ ui.page_header('Transfer money', 'Banking cash, moving MoMo to the bank, or withdrawing cash.') }}
+{% call ui.card() %}
+<form method="post" class="form-grid" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {{ fm.account_select('from_account', 'From', money_accounts) }}
+  {{ fm.account_select('to_account', 'To', money_accounts, money_accounts[1].public_id if money_accounts|length > 1 else None) }}
+  {{ fm.amount_input('amount', 'Amount') }}
+  {{ fm.amount_input('fee', 'Charges (if any)', required=False) }}
+  {{ ui.input('on', 'Date', today.isoformat(), 'date', required=True) }}
+  {{ ui.input('memo', 'Note', placeholder='e.g. Sunday offering banked') }}
+  <div class="form-actions span-2"><a class="btn" href="{{ url_for('finance.index') }}">Cancel</a><button class="btn btn-primary" type="submit">{{ icon('repeat', 17) }}<span>Record transfer</span></button></div>
+</form>
+{% endcall %}
+{% endblock %}

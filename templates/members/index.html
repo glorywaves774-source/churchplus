@@ -1,0 +1,66 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Members{% endblock %}
+{% block content %}
+{% call ui.page_header('Members', limit.label ~ ' registered' if limit.limit else stats.total ~ ' registered') %}
+  {% if can('members.export') %}
+    {{ ui.dropdown('Export', 'download', [('Excel (.xlsx)', url_for('members.export', fmt='xlsx', **params), 'table'), ('CSV', url_for('members.export', fmt='csv', **params), 'file-text')], icon_only=False) }}
+  {% endif %}
+  {% if can('members.create') %}
+    {{ ui.button('Import', 'upload', href=url_for('members.import_members')) }}
+    {% if limit.allowed %}{{ ui.button('Register member', 'user-plus', 'primary', href=url_for('members.create')) }}
+    {% else %}{{ ui.button('Member limit reached', 'lock', attrs={'disabled': True}) }}{% endif %}
+  {% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Total members', '{:,}'.format(stats.total), 'users') }}
+  {{ ui.stat_card('Active', '{:,}'.format(stats.active), 'user-check', 'success') }}
+  {{ ui.stat_card('New this month', stats.new_this_month, 'user-plus', 'info') }}
+  {{ ui.stat_card('Birthdays this month', stats.birthdays_this_month, 'cake', 'gold') }}
+</div>
+
+<section class="card">
+  {{ ui.filter_bar(url_for('members.index'), q, 'Search name, number, phone or email', filters=[
+       ('status', 'Status', [('active','Active'),('inactive','Inactive'),('transferred','Transferred'),('deceased','Deceased')], params.get('status', '')),
+       ('branch', 'Branch', branches, params.get('branch', '')),
+       ('gender', 'Gender', [('male','Male'),('female','Female')], params.get('gender', '')),
+       ('baptised', 'Baptised', [('yes','Yes'),('no','No')], params.get('baptised', '')),
+     ]) }}
+  {% if page.items %}
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead><tr><th data-sort="text">Member</th><th data-sort="text">Number</th><th>Phone</th><th data-sort="text">Branch</th><th data-sort="number" class="col-num">Age</th><th>Status</th><th class="col-actions"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        {% for m in page.items %}
+        <tr>
+          <td>
+            <div class="person">
+              {% if m.photo_key %}<img class="list-photo" src="{{ url_for('members.photo', public_id=m.public_id) }}" alt="" loading="lazy">{% else %}{{ ui.avatar(m.display_name, size='sm') }}{% endif %}
+              <div class="min-w-0"><a class="person-name" href="{{ url_for('members.profile', public_id=m.public_id) }}" translate="no">{{ m.display_name }}</a>
+                {% if m.email %}<div class="person-sub" translate="no">{{ m.email }}</div>{% endif %}</div>
+            </div>
+          </td>
+          <td class="nowrap" translate="no">{{ m.membership_number }}</td>
+          <td class="nowrap" translate="no">{{ m.phone or '—' }}</td>
+          <td class="wrap" translate="no">{{ m.branch.name if m.branch else '—' }}</td>
+          <td class="num">{{ m.age if m.age is not none else '—' }}</td>
+          <td>{{ ui.badge(m.status.value) }}</td>
+          <td class="col-actions">{{ ui.dropdown('Actions for ' ~ m.display_name, items=[('View profile', url_for('members.profile', public_id=m.public_id), 'eye')] + ([('Edit', url_for('members.edit', public_id=m.public_id), 'edit')] if can('members.edit') else []) + [('ID card', url_for('members.card', public_id=m.public_id), 'id-card')]) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {{ ui.pagination(page, 'members.index', params) }}
+  {% elif q or params %}
+    {{ ui.empty_state('No members found', 'Try a different search or clear the filters.', 'search') }}
+  {% else %}
+    {% call ui.empty_state('No members yet', 'Register members one by one, or import them from a spreadsheet.', 'users') %}
+      <div class="cluster">
+        {% if can('members.create') %}{{ ui.button('Register member', 'user-plus', 'primary', href=url_for('members.create')) }}{{ ui.button('Import', 'upload', href=url_for('members.import_members')) }}{% endif %}
+      </div>
+    {% endcall %}
+  {% endif %}
+</section>
+{% endblock %}

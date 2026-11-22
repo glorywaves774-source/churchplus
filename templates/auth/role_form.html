@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ role.name if role else 'New role' }}{% endblock %}
+{% block content %}
+{{ ui.page_header(role.name if role else 'New role', 'Tick what people with this role may do. You can only give permissions you have yourself.') }}
+<form method="post" novalidate>
+  {{ form.csrf_token }}
+  {% call ui.card() %}
+    <div class="form-grid">
+      {% if role and role.is_system %}
+        <div class="field"><span class="label">Role name</span><span class="input input-static">{{ role.name }}</span><input type="hidden" name="name" value="{{ role.name }}"></div>
+      {% else %}{{ ui.field(form.name, placeholder='e.g. Choir Coordinator') }}{% endif %}
+      {{ ui.field(form.description) }}
+      {{ ui.field(form.is_branch_scoped, span=True) }}
+    </div>
+  {% endcall %}
+
+  <section class="card mt-4">
+    <div class="card-header"><div><h3>Permissions</h3><p>Prayer, counselling and children's records are marked sensitive.</p></div></div>
+    <div class="card-body flush">
+      <div class="table-wrap">
+        <table class="table perm-matrix">
+          <thead><tr><th>Area</th>{% for a in actions %}<th class="col-center">{{ a|replace('manage_settings', 'settings')|capitalize }}</th>{% endfor %}</tr></thead>
+          <tbody>
+            {% for code, (label, sensitive) in modules.items() %}
+            <tr>
+              <td class="wrap"><strong>{{ label }}</strong>{% if sensitive %} {{ ui.badge('Sensitive', 'danger') }}{% endif %}</td>
+              {% for a in actions %}
+              {% set p = code ~ '.' ~ a %}
+              <td class="col-center"><input type="checkbox" class="perm-box" name="perm" value="{{ p }}" aria-label="{{ label }}: {{ a|replace('_', ' ') }}"{% if p in chosen %} checked{% endif %}{% if not allowed(p) %} disabled{% endif %}></td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="card-footer">
+      <a class="btn" href="{{ url_for('auth.roles') }}">Cancel</a>
+      <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>{{ 'Save role' if role else 'Create role' }}</span></button>
+    </div>
+  </section>
+</form>
+{% endblock %}

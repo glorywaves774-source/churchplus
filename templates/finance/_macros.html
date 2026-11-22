@@ -1,0 +1,36 @@
+{# Finance form helpers #}
+{% macro account_select(name, label, accounts, selected=None, required=True, blank=None, help=None) -%}
+<div class="field">
+  <label class="label" for="f-{{ name }}">{{ label }}{% if required %}<span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  <select class="select" id="f-{{ name }}" name="{{ name }}"{% if required %} required{% endif %}>
+    {% if blank %}<option value="">{{ blank }}</option>{% endif %}
+    {% for a in accounts %}<option value="{{ a.public_id }}"{% if a.public_id == selected %} selected{% endif %}>{{ a.name }}</option>{% endfor %}
+  </select>
+  {% if help %}<span class="help">{{ help }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro method_select(name, methods, selected='cash', label='Payment method') -%}
+<div class="field">
+  <label class="label" for="f-{{ name }}">{{ label }}</label>
+  <select class="select" id="f-{{ name }}" name="{{ name }}">
+    {% for v, t in methods %}<option value="{{ v }}"{% if v == selected %} selected{% endif %}>{{ t }}</option>{% endfor %}
+  </select>
+</div>
+{%- endmacro %}
+
+{% macro amount_input(name='amount', label='Amount', value='', required=True) -%}
+<div class="field">
+  <label class="label" for="f-{{ name }}">{{ label }} ({{ g.tenant.currency }}){% if required %}<span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  <input class="input num-input" id="f-{{ name }}" name="{{ name }}" inputmode="decimal" autocomplete="off" placeholder="0.00" value="{{ value }}"{% if required %} required{% endif %}>
+</div>
+{%- endmacro %}
+
+{% macro period_form(action, start, end, extra=None) -%}
+<form class="filter-bar" method="get" action="{{ action }}">
+  <input class="input date-input" type="date" name="from" value="{{ start.isoformat() }}" aria-label="From">
+  <input class="input date-input" type="date" name="to" value="{{ end.isoformat() }}" aria-label="To">
+  {% if caller %}{{ caller() }}{% endif %}
+  <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Apply</span></button>
+</form>
+{%- endmacro %}

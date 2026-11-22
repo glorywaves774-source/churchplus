@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ s.title }}{% endblock %}
+{% block content %}
+{{ ui.page_header(s.title, s.preacher ~ ' · ' ~ s.preached_on.strftime('%A %d %B %Y')) }}
+<div class="grid grid-main-side">
+  {% call ui.card() %}
+    {% if s.scripture %}<p><strong>{{ s.scripture }}</strong>{% if s.series %} · {{ s.series }}{% endif %}</p>{% endif %}
+    {% if s.summary %}<p>{{ s.summary }}</p>{% endif %}
+    {% if s.notes %}<div class="prose pre-wrap mt-4">{{ s.notes }}</div>{% endif %}
+    <div class="cluster mt-4">
+      {% if s.video_url %}<a class="btn btn-primary" href="{{ s.video_url }}" rel="noopener" target="_blank">{{ icon('play', 16) }}<span>Watch</span></a>{% endif %}
+      {% if s.audio_url %}<a class="btn" href="{{ s.audio_url }}" rel="noopener" target="_blank">{{ icon('music', 16) }}<span>Listen</span></a>{% endif %}
+    </div>
+  {% endcall %}
+  {% call ui.card('Recordings and files', flush=True) %}
+    {% if media %}<ul class="feed">{% for m in media %}<li><span class="feed-icon">{{ icon({'audio': 'music', 'video': 'video', 'document': 'file-text', 'image': 'image', 'link': 'link'}[m.kind.value], 16) }}</span><div class="grow">
+      <a class="feed-text" href="{{ url_for('portal.media', public_id=m.public_id) if m.file_key else m.url }}"{% if not m.file_key %} rel="noopener" target="_blank"{% endif %}>{{ m.title }}</a>
+      {% if m.file_key and m.kind.value == 'audio' %}<audio class="media-player" controls preload="none" src="{{ url_for('portal.media', public_id=m.public_id, inline=1) }}"></audio>{% endif %}
+    </div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No files for this sermon', icon_name='music') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

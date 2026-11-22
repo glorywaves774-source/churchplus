@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}New payment voucher{% endblock %}
+{% block content %}
+{{ ui.page_header('New payment voucher', 'It will wait for approval by someone other than you.') }}
+<form method="post" enctype="multipart/form-data" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card() %}
+  <div class="form-grid">
+    {{ ui.input('payee', 'Pay to', form.get('payee', ''), required=True, placeholder='e.g. ECG, Kofi Mensah (driver)') }}
+    {{ ui.input('expense_date', 'Date', form.get('expense_date', today.isoformat()), 'date', required=True) }}
+    {{ ui.input('description', 'What it is for', form.get('description', ''), required=True, span=True, placeholder='e.g. Electricity bill for October') }}
+    {{ fm.account_select('expense_account', 'Category', expense_accounts, form.get('expense_account')) }}
+    {{ fm.amount_input('amount', 'Amount', form.get('amount', '')) }}
+    <div class="field"><label class="label" for="f-department">Department (for department budgets)</label><select class="select" id="f-department" name="department"><option value="">None</option>{% for d in departments %}<option value="{{ d.public_id }}"{% if form.get('department') == d.public_id %} selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label" for="f-event">Event (for event budgets)</label><select class="select" id="f-event" name="event"><option value="">None</option>{% for ev in events %}<option value="{{ ev.public_id }}"{% if form.get('event') == ev.public_id %} selected{% endif %}>{{ ev.title }} – {{ ev.starts_at.strftime('%d %b %Y') }}</option>{% endfor %}</select></div>
+    {% if branches|length > 1 %}<div class="field"><label class="label" for="f-branch">Branch</label><select class="select" id="f-branch" name="branch"><option value="">Whole church</option>{% for b in branches %}<option value="{{ b.public_id }}">{{ b.name }}</option>{% endfor %}</select></div>{% endif %}
+    <div class="field span-2"><span class="label">Invoice or receipt (optional)</span><div class="upload-drop">{{ icon('paperclip', 20) }}<input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.docx" aria-label="Attachment"></div></div>
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('finance.expenses') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('send', 17) }}<span>Submit for approval</span></button>
+  </div>
+</form>
+{% endblock %}

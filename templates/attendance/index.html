@@ -1,0 +1,47 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Attendance{% endblock %}
+{% block content %}
+{% call ui.page_header('Attendance', 'Mark registers, take headcounts or check members in with their card.') %}
+  {{ ui.button('Absentees', 'user-x', href=url_for('attendance.absentees')) }}
+  {% if can('worship.create') %}{{ ui.button('Schedule service', 'calendar-plus', 'primary', href=url_for('worship.create')) }}{% endif %}
+{% endcall %}
+
+{% if todays %}
+<div class="grid grid-3 mb-4">
+  {% for s in todays %}
+  <a class="card stat-card" href="{{ url_for('attendance.register', public_id=s.public_id) }}">
+    <div class="stat-top"><span class="stat-label">Today{% if s.start_time %} · {{ s.start_time.strftime('%H:%M') }}{% endif %}</span><span class="stat-icon tone-success">{{ icon('clipboard-check', 18) }}</span></div>
+    <div class="stat-value">{{ totals[s.id] }}</div>
+    <div class="stat-meta"><span>{{ s.title }}</span><span class="delta up">Take attendance {{ icon('arrow-right', 14) }}</span></div>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Last service', last if last is not none else '—', 'users') }}
+  {{ ui.stat_card('Average (last 4)', average if average is not none else '—', 'activity', 'info') }}
+</div>
+
+<div class="grid grid-main-side">
+  {% call ui.card('Weekly attendance', 'Main services, last 12 weeks') %}
+    {% if chart.labels %}{{ ui.chart(chart, label='Weekly attendance chart') }}{% else %}{{ ui.empty_state('No attendance recorded yet', icon_name='line-chart') }}{% endif %}
+  {% endcall %}
+  {% call ui.card('Recent services', flush=True) %}
+    {% if recent %}
+    <ul class="feed">
+      {% for s in recent %}
+      <li><span class="feed-icon">{{ icon('church', 16) }}</span>
+        <div class="min-w-0 grow"><a class="feed-text" href="{{ url_for('attendance.register', public_id=s.public_id) }}">{{ s.title }}</a>
+        <div class="feed-time">{{ s.service_date.strftime('%a %d %b') }} · {{ totals[s.id] or 'not recorded' }}</div></div></li>
+      {% endfor %}
+    </ul>
+    {% else %}{{ ui.empty_state('No services yet', 'Schedule services first, then record attendance.', 'church') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

@@ -1,0 +1,110 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Attendance · {{ service.title }}{% endblock %}
+{% block content %}
+{% call ui.page_header(service.title, service.service_date.strftime('%A %d %B %Y') ~ (' · ' ~ service.branch.name if service.branch else '') ~ (' · ' ~ service.department.name if service.department else '')) %}
+  {{ ui.button('Service details', 'church', href=url_for('worship.detail', public_id=service.public_id)) }}
+  {% if has_endpoint('visitors.create') and can('visitors.create') %}{{ ui.button('Register first-timer', 'user-plus', 'primary', href=url_for('visitors.create', service=service.public_id)) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Total', total or 0, 'users') }}
+  {{ ui.stat_card('Members present', counts.members, 'user-check', 'success') }}
+  {{ ui.stat_card('Visitors', visitors|length, 'user-plus', 'gold') }}
+</div>
+
+<div class="tabs" role="tablist" aria-label="Ways to record attendance">
+  <button class="tab" role="tab" aria-selected="true" aria-controls="a-register" id="t-register">Register</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="a-checkin" id="t-checkin">Check-in</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="a-headcount" id="t-headcount">Headcount</button>
+  <button class="tab" role="tab" aria-selected="false" aria-controls="a-visitors" id="t-visitors">Visitors ({{ visitors|length }})</button>
+</div>
+
+<div class="tab-panels">
+<div id="a-register" role="tabpanel" aria-labelledby="t-register">
+  <section class="card">
+    <form class="filter-bar" method="get" action="{{ url_for('attendance.register', public_id=service.public_id) }}" role="search">
+      <div class="input-icon search-input">{{ icon('search', 17) }}<input class="input" type="search" name="q" value="{{ q }}" placeholder="Find a member" aria-label="Find a member"></div>
+      <button class="btn" type="submit">Find</button>
+    </form>
+    {% if members %}
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="q" value="{{ q }}">
+      <div class="table-wrap">
+        <table class="table register-table">
+          <thead><tr><th class="col-center">Present</th><th>Member</th><th>Number</th></tr></thead>
+          <tbody>
+            {% for m in members %}
+            <tr>
+              <td class="col-center"><input type="hidden" name="shown" value="{{ m.id }}"><input class="perm-box" type="checkbox" name="present" value="{{ m.id }}" id="p{{ m.id }}"{% if m.id in present_ids %} checked{% endif %}{% if not can('attendance.create') %} disabled{% endif %}></td>
+              <td><label for="p{{ m.id }}" class="person-name" translate="no">{{ m.display_name }}</label></td>
+              <td class="nowrap" translate="no">{{ m.membership_number }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="card-footer">
+        <span class="help">{% if total_matching > limit %}Showing {{ limit }} of {{ total_matching }}. Search to find others.{% else %}{{ total_matching }} member{{ '' if total_matching == 1 else 's' }}{% endif %}</span>
+        {% if can('attendance.create') %}<button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save register</span></button>{% endif %}
+      </div>
+    </form>
+    {% else %}{{ ui.empty_state('No members to show', 'Try another search.' if q else 'Register members first.', 'users') }}{% endif %}
+  </section>
+</div>
+
+<div id="a-checkin" role="tabpanel" aria-labelledby="t-checkin" hidden>
+  <div class="grid grid-2" id="checkin">
+    {% call ui.card('Check members in', 'Scan the QR code on a membership card, or type the membership number.') %}
+      {% if can('attendance.create') %}
+      <form method="post" action="{{ url_for('attendance.check_in', public_id=service.public_id) }}" class="stack" data-checkin>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field"><label class="label" for="checkin-code">Membership number or card code</label>
+          <div class="input-icon">{{ icon('qr-code', 17) }}<input class="input" id="checkin-code" name="code" autocomplete="off" autocapitalize="characters" placeholder="e.g. GCI-000124" required></div></div>
+        <div class="cluster">
+          <button class="btn btn-primary" type="submit">{{ icon('check', 17) }}<span>Check in</span></button>
+          <button class="btn" type="button" data-scan hidden>{{ icon('camera', 17) }}<span>Scan with camera</span></button>
+        </div>
+        <video class="scan-video" data-scan-video playsinline muted hidden></video>
+        <p class="help mb-0" data-scan-unsupported hidden>Camera scanning is not supported in this browser. A USB or Bluetooth card scanner, or typing the number, works everywhere.</p>
+      </form>
+      {% endif %}
+    {% endcall %}
+    {% call ui.card('Latest check-ins', flush=True) %}
+      {% if recent %}
+      <ul class="feed">
+        {% for r in recent %}
+        <li><span class="feed-icon">{{ icon('qr-code' if r.method.value == 'qr' else 'user-check', 16) }}</span>
+          <div class="min-w-0 grow"><div class="feed-text" translate="no">{{ r.member.display_name if r.member else (r.visitor.display_name if r.visitor else '—') }}</div><div class="feed-time">{{ r.checked_in_at.strftime('%H:%M') }} · {{ r.method.value }}</div></div>
+          {% if can('attendance.edit') %}<form method="post" action="{{ url_for('attendance.remove_record', public_id=service.public_id, record_id=r.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="Remove check-in">{{ icon('x', 16) }}</button></form>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}{{ ui.empty_state('No check-ins yet', icon_name='qr-code') }}{% endif %}
+    {% endcall %}
+  </div>
+</div>
+
+<div id="a-headcount" role="tabpanel" aria-labelledby="t-headcount" hidden>
+  {% call ui.card('Headcount', 'For services where people are counted rather than marked by name.', id='headcount') %}
+  <form method="post" action="{{ url_for('attendance.headcount', public_id=service.public_id) }}" class="form-grid">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    {{ ui.input('men', 'Men', service.headcount_men if service.headcount_men is not none else '', 'number', attrs={'min': 0, 'inputmode': 'numeric'}) }}
+    {{ ui.input('women', 'Women', service.headcount_women if service.headcount_women is not none else '', 'number', attrs={'min': 0, 'inputmode': 'numeric'}) }}
+    {{ ui.input('children', 'Children', service.headcount_children if service.headcount_children is not none else '', 'number', attrs={'min': 0, 'inputmode': 'numeric'}) }}
+    {{ ui.input('visitors', 'Visitors', service.headcount_visitors if service.headcount_visitors is not none else '', 'number', attrs={'min': 0, 'inputmode': 'numeric'}) }}
+    {% if can('attendance.create') %}<div class="form-actions span-2"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save headcount</span></button></div>{% endif %}
+  </form>
+  {% endcall %}
+</div>
+
+<div id="a-visitors" role="tabpanel" aria-labelledby="t-visitors" hidden>
+  {% call ui.card('First-timers and visitors at this service', flush=True) %}
+    {% if visitors %}
+    <ul class="feed">{% for v in visitors %}<li><span class="feed-icon">{{ icon('user-plus', 16) }}</span><div><a class="feed-text" href="{{ url_for('visitors.profile', public_id=v.public_id) if has_endpoint('visitors.profile') else '#' }}" translate="no">{{ v.display_name }}</a><div class="feed-time" translate="no">{{ v.phone or '' }}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No visitors registered for this service', icon_name='user-plus') }}{% endif %}
+  {% endcall %}
+</div>
+</div>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='js/checkin.js') }}" defer></script>{% endblock %}

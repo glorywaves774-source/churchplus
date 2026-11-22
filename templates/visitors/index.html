@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Visitors{% endblock %}
+{% block content %}
+{% call ui.page_header('Visitors and first-timers', 'Welcome, follow up and help visitors find their place.') %}
+  {{ ui.button('Retention', 'bar-chart-3', href=url_for('visitors.retention')) }}
+  {% if can('visitors.create') %}{{ ui.button('Register first-timer', 'user-plus', 'primary', href=url_for('visitors.create')) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('First-timers this month', stats.this_month, 'sparkles', 'gold') }}
+  {{ ui.stat_card('Being followed up', stats.following_up, 'phone', 'info') }}
+  {{ ui.stat_card('Became members', stats.converted, 'user-check', 'success') }}
+  {{ ui.stat_card('Overdue follow-ups', stats.overdue, 'alarm-clock', 'danger' if stats.overdue else '') }}
+</div>
+
+<div class="grid grid-main-side">
+  <section class="card">
+    {{ ui.filter_bar(url_for('visitors.index'), q, 'Search name or phone', filters=[
+         ('status', 'Status', [('new','New'),('following_up','Following up'),('regular','Regular'),('converted','Converted'),('inactive','Inactive')], status),
+         ('mine', 'Assigned', [('1', 'Assigned to me')], params.get('mine', ''))]) }}
+    {% if page.items %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Visitor</th><th>First visit</th><th>Phone</th><th>Follow-up by</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for v in page.items %}
+        <tr>
+          <td><a class="person-name" href="{{ url_for('visitors.profile', public_id=v.public_id) }}" translate="no">{{ v.display_name }}</a>{% if v.how_heard %}<div class="person-sub">{{ v.how_heard }}</div>{% endif %}</td>
+          <td class="nowrap">{{ v.first_visit_date.strftime('%d %b %Y') }}</td>
+          <td class="nowrap" translate="no">{{ v.phone or '—' }}</td>
+          <td class="wrap" translate="no">{{ v.assigned_to.user.full_name if v.assigned_to else '—' }}</td>
+          <td>{{ ui.badge(v.status.value, {'new': 'info', 'following_up': 'warning', 'regular': 'accent', 'converted': 'success', 'inactive': ''}[v.status.value]) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+    {{ ui.pagination(page, 'visitors.index', params) }}
+    {% else %}{{ ui.empty_state('No visitors found', 'Register first-timers as they arrive, or from the attendance page.', 'user-plus') }}{% endif %}
+  </section>
+
+  {% call ui.card('Follow-ups due', 'Overdue and next three days', flush=True) %}
+    {% if due %}
+    <ul class="feed">
+      {% for f in due %}
+      <li><span class="feed-icon">{{ icon({'call': 'phone', 'visit': 'home', 'sms': 'message-square', 'whatsapp': 'message-circle', 'email': 'mail'}[f.method.value], 16) }}</span>
+        <div class="min-w-0"><a class="feed-text" href="{{ url_for('visitors.profile', public_id=f.visitor.public_id) }}" translate="no">{{ f.visitor.display_name }}</a>
+        <div class="feed-time">{% if f.due_date < today %}<span class="delta down">Overdue</span> · {% endif %}{{ f.due_date.strftime('%a %d %b') }}{% if f.assigned_to %} · <span translate="no">{{ f.assigned_to.user.first_name }}</span>{% endif %}</div></div></li>
+      {% endfor %}
+    </ul>
+    {% else %}{{ ui.empty_state('Nothing due', icon_name='check-circle-2') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

@@ -1,0 +1,16 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Recovery codes{% endblock %}
+{% block content %}
+{{ ui.page_header('Save your recovery codes', 'Each code works once. Use one if you cannot get a code from your phone.') }}
+{% call ui.card() %}
+  {{ ui.alert('These codes will not be shown again. Print them or store them somewhere safe, such as a password manager.', 'warning') }}
+  <ol class="codes" translate="no">
+    {% for c in codes %}<li>{{ c }}</li>{% endfor %}
+  </ol>
+  <div class="cluster">
+    <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+    <a class="btn btn-primary" href="{{ url_for('auth.account') }}">{{ icon('check', 17) }}<span>I've saved them</span></a>
+  </div>
+{% endcall %}
+{% endblock %}

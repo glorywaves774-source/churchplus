@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Subscription{% endblock %}
+{% block content %}
+{{ ui.page_header('ChurchPlus subscription') }}
+{% if sub %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Plan', sub.plan.name, 'layers', 'info', note=sub.billing_cycle.value|capitalize) }}
+  {{ ui.stat_card('Status', {'trialing': 'Free trial', 'active': 'Active', 'past_due': 'Payment due', 'suspended': 'Suspended', 'cancelled': 'Cancelled'}[sub.status.value], 'credit-card', {'active': 'success', 'trialing': 'info', 'past_due': 'danger', 'suspended': 'danger'}.get(sub.status.value, '')) }}
+  {% if sub.status.value == 'trialing' and sub.trial_ends_at %}{{ ui.stat_card('Trial ends', sub.trial_ends_at|localtime('%d %b %Y'), 'clock', 'gold') }}
+  {% elif sub.current_period_end %}{{ ui.stat_card('Paid until', sub.current_period_end|localtime('%d %b %Y'), 'calendar-check', '') }}{% endif %}
+  {% set p = price(sub.plan, sub.billing_cycle) %}{{ ui.stat_card('Price', p|money(sub.plan.currency) if p else 'Custom', 'banknote', '') }}
+</div>
+{% endif %}
+{% if g.tenant.status.value == 'suspended' %}{{ ui.alert('Your workspace is paused because an invoice is unpaid. Pay it below and everything opens again straight away. No data has been deleted.', 'danger', 'Payment needed') }}{% endif %}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Invoices', flush=True) %}
+      {% if invoices %}<div class="table-wrap"><table class="table"><thead><tr><th>Invoice</th><th>For</th><th>Due</th><th class="col-num">Amount</th><th>Status</th></tr></thead>
+      <tbody>{% for i in invoices %}<tr><td class="nowrap"><a class="person-name" href="{{ url_for('billing.invoice', public_id=i.public_id) }}">{{ i.number }}</a></td><td class="wrap">{{ i.description }}</td><td class="nowrap">{{ i.due_on.strftime('%d %b %Y') }}</td><td class="num">{{ i.amount|money(i.currency) }}</td><td>{{ ui.badge(i.status.value, {'open': 'warning', 'paid': 'success', 'void': ''}[i.status.value]) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}{{ ui.empty_state('No invoices yet', 'Your first invoice is created when the free trial ends.', 'receipt') }}{% endif %}
+    {% endcall %}
+    {% if can('billing.manage_settings') %}
+    <h2 class="section-title mt-4">Plans</h2>
+    <div class="grid grid-2">{% for pl in plans %}
+      {% call ui.card(pl.name, pl.description) %}
+        <p class="plan-price">{% if pl.monthly_price is not none %}{{ pl.monthly_price|money(pl.currency) }} <span class="person-sub">a month</span>{% else %}Custom pricing{% endif %}</p>
+        <p class="person-sub">{{ pl.max_users or 'Unlimited' }} staff users · {{ pl.max_members or 'Unlimited' }} members · {{ pl.max_branches or 'Unlimited' }} branches · member portal free</p>
+        {% if pl.monthly_price is not none %}
+        <form method="post" action="{{ url_for('billing.choose_plan') }}" class="cluster">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="plan" value="{{ pl.public_id }}">
+          <select class="select" name="cycle" aria-label="Billing"><option value="monthly">Monthly</option><option value="annual">Yearly{% if pl.annual_price %} ({{ pl.annual_price|money(pl.currency) }}){% endif %}</option></select>
+          <button class="btn btn-sm{{ ' btn-primary' if not sub or sub.plan_id != pl.id }}" type="submit">{{ 'Renew' if sub and sub.plan_id == pl.id else 'Choose' }}</button>
+        </form>{% else %}<p class="help">Contact ChurchPlus for a quote.</p>{% endif %}
+      {% endcall %}
+    {% endfor %}</div>
+    {% endif %}
+  </div>
+  {% call ui.card('Usage') %}
+    <dl class="kv">{% for k, lim in usage.items() %}<dt>{{ {'users': 'Staff users', 'members': 'Members', 'branches': 'Branches'}[k] }}</dt><dd>{{ lim.label }}</dd>{% endfor %}</dl>
+    <p class="help mt-4">Payments are handled by {{ 'Paystack and Hubtel' if providers|length > 1 else (providers[0]|capitalize if providers else 'our payment partners') }}. ChurchPlus never sees or stores card details.</p>
+  {% endcall %}
+</div>
+{% endblock %}

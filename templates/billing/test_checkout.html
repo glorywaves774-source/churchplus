@@ -1,0 +1,12 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Test payment{% endblock %}
+{% block card %}
+<h1>Test payment</h1>
+<p class="text-muted">Development only: this stands in for Paystack or Hubtel. No money moves.</p>
+<p><strong>{{ pay.amount|money(pay.currency) }}</strong> · {{ pay.reference }}</p>
+<form method="post" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button class="btn btn-primary btn-block" type="submit" name="result" value="success">{{ icon('check', 17) }}<span>Pay successfully</span></button>
+  <button class="btn btn-block" type="submit" name="result" value="failed">{{ icon('x', 17) }}<span>Fail the payment</span></button>
+</form>
+{% endblock %}

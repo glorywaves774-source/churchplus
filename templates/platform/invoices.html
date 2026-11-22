@@ -1,0 +1,17 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Invoices{% endblock %}
+{% block content %}
+{{ ui.page_header('Invoices and payments') }}
+<section class="card mb-4">
+  <div class="filter-bar">{% for k, label in [('open', 'Open'), ('paid', 'Paid'), ('void', 'Void'), ('all', 'All')] %}<a class="chip" href="{{ url_for('platform.invoices', status=k) }}" aria-pressed="{{ 'true' if status == k else 'false' }}">{{ label }}</a>{% endfor %}</div>
+  {% if rows %}<div class="table-wrap"><table class="table" data-sortable><thead><tr><th>Invoice</th><th>Church</th><th>Due</th><th class="col-num">Amount</th><th>Status</th></tr></thead>
+  <tbody>{% for i in rows %}<tr><td class="nowrap">{{ i.number }}</td><td class="wrap"><a href="{{ url_for('platform.church', public_id=names[i.tenant_id].public_id) }}" translate="no">{{ names[i.tenant_id].name }}</a></td><td class="nowrap">{{ i.due_on.strftime('%d %b %Y') }}</td><td class="num">{{ i.amount|money(i.currency) }}</td><td>{{ ui.badge(i.status.value, {'open': 'warning', 'paid': 'success', 'void': ''}[i.status.value]) }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ ui.empty_state('No invoices', icon_name='receipt') }}{% endif %}
+</section>
+{% call ui.card('Latest payments', flush=True) %}
+  {% if payments %}<div class="table-wrap"><table class="table"><thead><tr><th>When</th><th>Reference</th><th>Provider</th><th class="col-num">Amount</th><th>Status</th></tr></thead>
+  <tbody>{% for p in payments %}<tr><td class="nowrap">{{ p.created_at|localtime }}</td><td class="nowrap">{{ p.reference }}</td><td>{{ p.provider|capitalize }}{% if p.channel %} · {{ p.channel }}{% endif %}</td><td class="num">{{ p.amount|money(p.currency) }}</td><td>{{ ui.badge(p.status.value, {'success': 'success', 'pending': 'info', 'failed': 'danger'}[p.status.value]) }}</td></tr>{% endfor %}</tbody></table></div>
+  {% else %}{{ ui.empty_state('No payments yet', icon_name='banknote') }}{% endif %}
+{% endcall %}
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit child' if c else 'Register a child' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit ' ~ c.member.display_name if c else 'Register a child', None if c else 'The child must already be in the membership register.') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if not c %}
+  {% call ui.card('Child') %}
+    <div class="form-grid">
+      {{ ui.input('number', 'Membership number', form.get('number', request.args.get('number', '')), required=True, placeholder='e.g. GCI-000210', attrs={'list': 'child-suggestions'}) }}
+    </div>
+    {% if suggestions %}
+    <datalist id="child-suggestions">{% for m in suggestions %}<option value="{{ m.membership_number }}">{{ m.display_name }} ({{ m.age }})</option>{% endfor %}</datalist>
+    <p class="help mt-4">Under-18s without a profile: {% for m in suggestions[:8] %}<a href="{{ url_for('children.register', number=m.membership_number) }}" translate="no">{{ m.display_name }}</a>{{ ', ' if not loop.last }}{% endfor %}{% if suggestions|length > 8 %} and more{% endif %}.</p>
+    {% endif %}
+  {% endcall %}
+  {% endif %}
+  {% call ui.card('Class and care') %}
+  <div class="form-grid">
+    {% set co = [] %}{% for k in classes %}{% set _ = co.append((k.public_id, k.name ~ ' (' ~ k.min_age ~ '–' ~ k.max_age ~ ')')) %}{% endfor %}
+    {{ ui.select('class', co, 'Class', form.get('class', c.child_class.public_id if c and c.child_class else ''), placeholder='Choose by age automatically') }}
+    {{ ui.input('school', 'School', form.get('school', c.school or '' if c else '')) }}
+    {{ ui.input('allergies', 'Allergies', form.get('allergies', c.allergies or '' if c else ''), span=True, placeholder='e.g. Peanuts – carries an EpiPen') }}
+    <div class="field span-2"><label class="label" for="f-medical_notes">Medical notes</label><textarea class="textarea" id="f-medical_notes" name="medical_notes">{{ form.get('medical_notes', c.medical_notes or '' if c else '') }}</textarea></div>
+    <div class="field span-2"><label class="label" for="f-special_needs">Special needs or support</label><textarea class="textarea" id="f-special_needs" name="special_needs">{{ form.get('special_needs', c.special_needs or '' if c else '') }}</textarea></div>
+    <label class="check span-2"><input type="checkbox" name="photo_consent" value="y"{% if form.get('photo_consent') == 'y' or (not form and c and c.photo_consent) %} checked{% endif %}> Parent or guardian agrees to photos and videos of this child</label>
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('children.profile', public_id=c.public_id) if c else url_for('children.index') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

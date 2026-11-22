@@ -1,0 +1,10 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}My family{% endblock %}
+{% block content %}
+{{ ui.page_header(fam.name if fam else 'My family', 'As recorded by the church office') }}
+<section class="card">
+  {% if people %}<ul class="feed">{% for m in people %}<li><span class="feed-icon">{{ icon('user-round', 16) }}</span><div class="grow"><div class="feed-text" translate="no">{{ m.display_name }}</div><div class="feed-time">{{ (m.family_role.value|capitalize) if m.family_role else '' }}{% if m.age is not none and m.age < 18 %} · {{ m.age }} years{% endif %}</div></div></li>{% endfor %}</ul>
+  {% else %}{{ ui.empty_state('No family linked', 'Ask the church office to link your family members.', 'users') }}{% endif %}
+</section>
+{% endblock %}

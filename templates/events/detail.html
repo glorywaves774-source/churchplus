@@ -1,0 +1,80 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ e.title }}{% endblock %}
+{% block content %}
+{% call ui.page_header(e.title, e.starts_at.strftime('%A %d %B %Y, %H:%M') ~ (' · ' ~ e.venue if e.venue else '')) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print report</span></button>
+  {% if can('events.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('events.edit', public_id=e.public_id)) }}{% endif %}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Status', e.status.value|capitalize, 'calendar-check') }}
+  {% if e.requires_registration %}{{ ui.stat_card('Registered', taken ~ ((' / ' ~ e.capacity) if e.capacity else ''), 'users', 'info', note='including guests') }}{% endif %}
+  {{ ui.stat_card('Attended', attended, 'user-check', 'success') }}
+  {{ ui.stat_card('Spent', spend|money, 'receipt', 'gold', note=('of ' ~ (e.budget_amount|money) ~ ' budget') if e.budget_amount else None) }}
+</div>
+<div class="grid grid-main-side mb-4">
+  {% call ui.card('About') %}
+    {% if e.description %}<p>{{ e.description }}</p>{% endif %}
+    <dl class="kv">
+      <dt>Category</dt><dd>{{ e.category }}</dd>
+      {% if e.ends_at %}<dt>Ends</dt><dd>{{ e.ends_at.strftime('%a %d %b %Y, %H:%M') }}</dd>{% endif %}
+      {% if e.department %}<dt>Organised by</dt><dd>{{ e.department.name }}</dd>{% endif %}
+      <dt>Branch</dt><dd translate="no">{{ e.branch.name if e.branch else 'Whole church' }}</dd>
+      {% if e.livestream_url %}<dt>Livestream</dt><dd><a href="{{ e.livestream_url }}" rel="noopener" target="_blank">{{ icon('video', 14) }} Watch</a></dd>{% endif %}
+      <dt>Website</dt><dd>{{ 'Shown' if e.is_public else 'Not shown' }}</dd>
+      {% if e.registration_closes %}<dt>Registration closes</dt><dd>{{ e.registration_closes.strftime('%d %b %Y') }}</dd>{% endif %}
+    </dl>
+  {% endcall %}
+  {% call ui.card('Committee', id='committee', flush=True) %}
+    {% if e.committee %}<ul class="feed">{% for c in e.committee %}<li><span class="feed-icon">{{ icon('user-check', 16) }}</span><div class="grow"><div class="feed-text" translate="no">{{ c.display_name }}</div><div class="feed-time">{{ c.role }}</div></div>{% if can('events.edit') %}<form method="post" action="{{ url_for('events.remove_committee', public_id=e.public_id, cm_id=c.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="Remove">{{ icon('x', 15) }}</button></form>{% endif %}</li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No committee yet', icon_name='users') }}{% endif %}
+    {% if can('events.edit') %}
+    <form method="post" action="{{ url_for('events.add_committee', public_id=e.public_id) }}" class="card-body stack no-print">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('role', 'Role', placeholder='e.g. Chairperson, Treasurer, Logistics') }}
+      {{ ui.input('number', 'Membership number', placeholder='e.g. GCI-000124') }}
+      {{ ui.input('name', 'Or name') }}
+      <button class="btn btn-sm" type="submit">{{ icon('plus', 15) }}<span>Add</span></button>
+    </form>
+    {% endif %}
+  {% endcall %}
+</div>
+
+<div class="grid grid-main-side" id="registrations">
+  {% call ui.card('Registrations and attendance', flush=True) %}
+    {% if regs %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Name</th><th>Contact</th><th class="col-num">Guests</th><th>Status</th><th class="col-center">Attended</th><th class="col-actions"></th></tr></thead>
+      <tbody>{% for r in regs %}<tr>
+        <td class="wrap" translate="no">{{ r.display_name }}</td>
+        <td class="nowrap" translate="no">{{ r.phone or (r.member.phone if r.member else '') or '—' }}</td>
+        <td class="num">{{ r.guests }}</td>
+        <td>{{ ui.badge(r.status.value, {'registered': 'success', 'waitlisted': 'warning', 'cancelled': ''}[r.status.value]) }}</td>
+        <td class="col-center">{% if r.status.value == 'registered' and can('events.edit') %}<form method="post" action="{{ url_for('events.registration_action', public_id=e.public_id, reg_id=r.public_id, action='attended') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm {{ '' if r.attended else 'btn-ghost' }}" type="submit" aria-pressed="{{ 'true' if r.attended else 'false' }}">{{ icon('check' if r.attended else 'minus', 15) }}</button></form>{% elif r.attended %}{{ icon('check', 15) }}{% endif %}</td>
+        <td class="col-actions">{% if r.status.value != 'cancelled' and can('events.edit') %}{{ ui.confirm_button(url_for('events.registration_action', public_id=e.public_id, reg_id=r.public_id, action='cancel'), '', 'Cancel ' ~ r.display_name ~ "'s registration?", 'Cancel registration', 'x', 'ghost', 'sm') }}{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No registrations yet', icon_name='users') }}{% endif %}
+  {% endcall %}
+  <div class="stack no-print">
+    {% if can('events.edit') and e.status.value == 'published' %}
+    {% call ui.card('Register someone') %}
+      <form method="post" action="{{ url_for('events.add_registration', public_id=e.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('number', 'Membership number', placeholder='e.g. GCI-000124') }}
+        {{ ui.input('name', 'Or name (non-member)') }}
+        {{ ui.input('phone', 'Phone', type='tel') }}
+        {{ ui.input('guests', 'Extra guests', '0', 'number', attrs={'min': 0, 'max': 20}) }}
+        <button class="btn btn-primary btn-sm" type="submit">{{ icon('user-plus', 15) }}<span>Register</span></button>
+      </form>
+    {% endcall %}
+    {% elif e.status.value == 'draft' %}{{ ui.alert('Publish the event to open registration.', 'info') }}{% endif %}
+    {% call ui.card('Spending', flush=True) %}
+      {% if expenses %}<ul class="feed">{% for x in expenses %}<li><span class="feed-icon">{{ icon('receipt', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('finance.expense', public_id=x.public_id) }}">{{ x.payee }}</a><div class="feed-time">{{ x.voucher_number }} · {{ x.status.value }}</div></div><span class="num">{{ x.amount|money(plain=True) }}</span></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No vouchers for this event', icon_name='receipt') }}{% endif %}
+      {% if can('finance.create') %}<div class="card-body"><a class="btn btn-sm" href="{{ url_for('finance.new_expense', event=e.public_id) }}">{{ icon('plus', 15) }}<span>New voucher for this event</span></a></div>{% endif %}
+    {% endcall %}
+    {% if can('events.delete') %}{{ ui.confirm_button(url_for('events.delete', public_id=e.public_id), 'Delete event', 'Delete ' ~ e.title ~ ' and its registrations?', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

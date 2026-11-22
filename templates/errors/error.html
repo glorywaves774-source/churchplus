@@ -1,0 +1,19 @@
+{% extends "layouts/base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block body_class %}page-public{% endblock %}
+{% block body %}
+<header class="public-bar glass">
+  <a class="brand" href="{{ url_for('core.index') }}">
+    {% include "layouts/_brand.html" %}
+  </a>
+  {% include "layouts/_theme_toggle.html" %}
+</header>
+<main class="public-main">
+  <section class="hero glass error-card">
+    <p class="eyebrow">Error {{ code }}</p>
+    <h1>{{ title }}</h1>
+    <p class="lead">{{ message }}</p>
+    <a class="btn btn-primary" href="{{ url_for('core.index') }}">{{ icon('home', 17) }}<span>Go to the home page</span></a>
+  </section>
+</main>
+{% endblock %}

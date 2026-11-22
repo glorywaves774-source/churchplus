@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit branch' if branch else 'New branch' }}{% endblock %}
+{% block content %}
+{{ ui.page_header(branch.name if branch else 'New branch', 'Branch details' if branch else 'Add a location or assembly of your church.') }}
+{% call ui.card() %}
+<form method="post" class="form-grid" novalidate>
+  {{ form.csrf_token }}
+  {{ ui.field(form.name, placeholder='e.g. Tema Community 25') }}
+  {{ ui.field(form.code, placeholder='TEMA') }}
+  {{ ui.field(form.email, icon_name='mail') }}
+  {{ ui.field(form.phone, icon_name='phone') }}
+  {{ ui.field(form.address, span=True) }}
+  {{ ui.field(form.city) }}
+  {{ ui.field(form.region) }}
+  {{ ui.field(form.country) }}
+  <div class="form-actions span-2">
+    <a class="btn" href="{{ url_for('tenants.branches') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>{{ 'Save branch' if branch else 'Add branch' }}</span></button>
+  </div>
+</form>
+{% endcall %}
+{% endblock %}

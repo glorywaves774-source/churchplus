@@ -1,0 +1,38 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}Record giving{% endblock %}
+{% block content %}
+{{ ui.page_header('Record giving', ('Payment towards ' ~ pledge.name ~ "'s pledge of " ~ (pledge.amount|money)) if pledge else 'Tithes, offerings, donations, welfare and project contributions. A receipt is created.') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if pledge %}<input type="hidden" name="pledge" value="{{ pledge.public_id }}">{% endif %}
+  {% call ui.card('Who and what') %}
+  <div class="form-grid">
+    {% if not pledge %}
+    {{ ui.input('member_number', 'Membership number', form.get('member_number', ''), placeholder='e.g. GCI-000124', help='Leave empty for non-members or anonymous giving.') }}
+    {{ ui.input('giver_name', 'Or giver name', form.get('giver_name', ''), placeholder='e.g. Visitor, Anonymous') }}
+    {{ fm.account_select('income_account', 'Type of giving', income_accounts, form.get('income_account') or request.args.get('type')) }}
+    <div class="field"><label class="label" for="f-campaign">Campaign or project</label><select class="select" id="f-campaign" name="campaign"><option value="">None</option>{% for c in campaigns %}<option value="{{ c.public_id }}"{% if form.get('campaign') == c.public_id %} selected{% endif %}>{{ c.name }}</option>{% endfor %}</select></div>
+    {% endif %}
+    {{ fm.amount_input('amount', 'Amount', form.get('amount', '')) }}
+    {{ ui.input('received_on', 'Date received', form.get('received_on', today.isoformat()), 'date', required=True) }}
+  </div>
+  {% endcall %}
+  {% call ui.card('How it was received') %}
+  <div class="form-grid">
+    {{ fm.method_select('method', methods, form.get('method') or request.args.get('method', 'cash')) }}
+    {{ fm.account_select('deposit_account', 'Paid into', money_accounts, form.get('deposit_account') or request.args.get('account')) }}
+    {{ ui.input('reference', 'Reference', form.get('reference', ''), placeholder='MoMo transaction ID, cheque number…') }}
+    <div class="field"><label class="label" for="f-service">Service (optional)</label><select class="select" id="f-service" name="service"><option value="">None</option>{% for s in services %}<option value="{{ s.public_id }}"{% if form.get('service') == s.public_id %} selected{% endif %}>{{ s.title }} – {{ s.service_date.strftime('%a %d %b') }}</option>{% endfor %}</select></div>
+    {% if branches|length > 1 %}<div class="field"><label class="label" for="f-branch">Branch (non-members)</label><select class="select" id="f-branch" name="branch"><option value="">Not specified</option>{% for b in branches %}<option value="{{ b.public_id }}">{{ b.name }}</option>{% endfor %}</select></div>{% endif %}
+    {{ ui.input('notes', 'Notes', form.get('notes', ''), span=True) }}
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('finance.giving') }}">Cancel</a>
+    <button type="submit" class="btn" name="again" value="1">{{ icon('plus', 17) }}<span>Save and record another</span></button>
+    <button type="submit" class="btn btn-primary">{{ icon('receipt', 17) }}<span>Save and show receipt</span></button>
+  </div>
+</form>
+{% endblock %}

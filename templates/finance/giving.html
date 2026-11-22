@@ -1,0 +1,32 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}Giving{% endblock %}
+{% block content %}
+{% call ui.page_header('Giving', start.strftime('%d %b %Y') ~ ' – ' ~ end.strftime('%d %b %Y') ~ ' · total ' ~ (total|money)) %}
+  {% if can('finance.export') %}{{ ui.button('Export CSV', 'download', href=url_for('finance.giving', format='csv', **params)) }}{% endif %}
+  {% if can('finance.create') %}{{ ui.button('Service offering', 'church', href=url_for('finance.offering')) }}{{ ui.button('Record giving', 'plus', 'primary', href=url_for('finance.record_giving')) }}{% endif %}
+{% endcall %}
+<section class="card">
+  {% call fm.period_form(url_for('finance.giving'), start, end) %}
+    <div class="input-icon search-input">{{ icon('search', 17) }}<input class="input" type="search" name="q" value="{{ q }}" placeholder="Name, number, receipt or reference" aria-label="Search"></div>
+    <select class="select" name="type" aria-label="Type"><option value="">All types</option>{% for a in income_accounts %}<option value="{{ a.public_id }}"{% if params.get('type') == a.public_id %} selected{% endif %}>{{ a.name }}</option>{% endfor %}</select>
+    <select class="select" name="method" aria-label="Method"><option value="">All methods</option>{% for v, t in methods %}<option value="{{ v }}"{% if params.get('method') == v %} selected{% endif %}>{{ t }}</option>{% endfor %}</select>
+    <select class="select" name="status" aria-label="Status"><option value="">Valid receipts</option><option value="void"{% if params.get('status') == 'void' %} selected{% endif %}>Voided</option></select>
+  {% endcall %}
+  {% if page.items %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Receipt</th><th>Date</th><th>Giver</th><th>Type</th><th>Method</th><th class="col-num">Amount</th></tr></thead>
+    <tbody>{% for c in page.items %}<tr>
+      <td class="nowrap"><a href="{{ url_for('finance.receipt', public_id=c.public_id) }}">{{ c.receipt_number }}</a></td>
+      <td class="nowrap">{{ c.received_on.strftime('%d %b %Y') }}</td>
+      <td class="wrap" translate="no">{{ c.giver }}{% if c.member %}<div class="person-sub">{{ c.member.membership_number }}</div>{% endif %}</td>
+      <td class="wrap">{{ c.income_account.name }}{% if c.pledge %} <span class="badge plain">Pledge</span>{% endif %}</td>
+      <td class="nowrap">{{ c.method.value|replace('_', ' ')|capitalize }}{% if c.reference %}<div class="person-sub" translate="no">{{ c.reference }}</div>{% endif %}</td>
+      <td class="num">{{ c.amount|money(plain=True) }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {{ ui.pagination(page, 'finance.giving', params) }}
+  {% else %}{{ ui.empty_state('No giving in this period', 'Change the dates or filters.', 'hand-coins') }}{% endif %}
+</section>
+{% endblock %}

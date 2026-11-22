@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit access' if account else 'Invite a person' }}{% endblock %}
+{% block content %}
+{{ ui.page_header(account.user.full_name if account else 'Invite a person',
+                  account.user.email if account else 'They will receive an email to set up their sign-in.') }}
+{% call ui.card() %}
+<form method="post" class="form-grid" novalidate>
+  {{ form.csrf_token }}
+  {% if not account %}
+    {{ ui.field(form.first_name) }}
+    {{ ui.field(form.last_name) }}
+    {{ ui.field(form.email, span=True, icon_name='mail') }}
+  {% endif %}
+  {{ ui.field(form.branch, span=True, help='Branch-limited roles (such as Branch Administrator) only see this branch.') }}
+  <fieldset class="field span-2 fieldset-plain">
+    <legend class="label">Roles</legend>
+    <div class="role-grid">
+      {% for r in roles %}
+      {% set ok = grantable(r) %}
+      <label class="radio-card{% if not ok %} is-disabled{% endif %}">
+        <input type="checkbox" name="roles" value="{{ r.public_id }}"{% if r.public_id in selected %} checked{% endif %}{% if not ok %} disabled{% endif %}>
+        <span><strong>{{ r.name }}</strong>{% if r.is_branch_scoped %} <span class="badge plain">Own branch</span>{% endif %}<br><span class="help">{{ r.description or (r.permissions|length ~ ' permissions') }}{% if not ok %} · needs more access than you have{% endif %}</span></span>
+      </label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  <div class="form-actions span-2">
+    <a class="btn" href="{{ url_for('auth.users') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('send' if not account else 'save', 17) }}<span>{{ 'Send invitation' if not account else 'Save changes' }}</span></button>
+  </div>
+</form>
+{% endcall %}
+{% endblock %}

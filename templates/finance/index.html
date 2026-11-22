@@ -1,0 +1,69 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Finance{% endblock %}
+{% block content %}
+{% call ui.page_header('Finance', 'Giving, spending and balances for ' ~ g.tenant.name ~ '.') %}
+  {% if can('finance.create') %}
+    {{ ui.button('Transfer', 'repeat', href=url_for('finance.transfer')) }}
+    {{ ui.button('New expense', 'file-text', href=url_for('finance.new_expense')) }}
+    {{ ui.button('Record giving', 'hand-coins', 'primary', href=url_for('finance.record_giving')) }}
+  {% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Giving this month', giving.total|money, 'hand-coins', 'gold', note=giving.count ~ ' receipts', href=url_for('finance.giving')) }}
+  {{ ui.stat_card('Expenses this month', stmt.total_expenses|money, 'receipt', 'danger') }}
+  {{ ui.stat_card('Surplus this month', stmt.surplus|money, 'trending-up' if stmt.surplus >= 0 else 'trending-down', 'success' if stmt.surplus >= 0 else 'danger') }}
+  {{ ui.stat_card('Cash, bank and MoMo', cash_total|money, 'wallet', 'info') }}
+</div>
+
+{% if pending or unpaid %}
+<div class="alert alert-warning mb-4">{{ icon('alert-triangle', 18) }}<div class="alert-body">
+  {% if pending %}<a href="{{ url_for('finance.expenses', status='submitted') }}">{{ pending }} voucher{{ '' if pending == 1 else 's' }} awaiting approval</a>{% endif %}
+  {% if pending and unpaid %} · {% endif %}
+  {% if unpaid %}<a href="{{ url_for('finance.expenses', status='approved') }}">{{ unpaid }} approved, not yet paid</a>{% endif %}
+</div></div>
+{% endif %}
+
+<div class="grid grid-main-side mb-4">
+  {% call ui.card('Income and expenses', 'Last six months') %}{{ ui.chart(trend, label='Income and expenses chart') }}{% endcall %}
+  {% call ui.card('Giving this month', 'By type') %}
+    {% if giving.by_type %}{{ ui.chart(mix, 'sm', 'Giving by type chart') }}{% else %}{{ ui.empty_state('No giving recorded this month', icon_name='hand-coins') }}{% endif %}
+  {% endcall %}
+</div>
+
+<div class="grid grid-main-side">
+  {% call ui.card('Latest receipts', flush=True) %}
+    {% if recent %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Receipt</th><th>Date</th><th>Giver</th><th>Type</th><th class="col-num">Amount</th></tr></thead>
+      <tbody>{% for c in recent %}<tr>
+        <td class="nowrap"><a href="{{ url_for('finance.receipt', public_id=c.public_id) }}">{{ c.receipt_number }}</a>{% if c.status.value == 'void' %} {{ ui.badge('Void', 'danger') }}{% endif %}</td>
+        <td class="nowrap">{{ c.received_on.strftime('%d %b') }}</td>
+        <td class="wrap" translate="no">{{ c.giver }}</td>
+        <td class="wrap">{{ c.income_account.name }}</td>
+        <td class="num">{{ c.amount|money(plain=True) }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No giving recorded yet', icon_name='receipt') }}{% endif %}
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card('Balances today', flush=True) %}
+      <ul class="feed">{% for a, bal in balances %}<li><span class="feed-icon">{{ icon({'cash': 'banknote', 'bank': 'landmark', 'mobile_money': 'smartphone'}[a.subtype.value], 16) }}</span><div class="grow"><div class="feed-text">{{ a.name }}</div><div class="feed-time">{{ a.code }}</div></div><strong class="num">{{ bal|money }}</strong></li>{% endfor %}</ul>
+    {% endcall %}
+    {% call ui.card('Finance tools') %}
+      <div class="quick-actions">
+        <a class="quick-action" href="{{ url_for('finance.offering') }}">{{ icon('church', 20) }}Service offering</a>
+        <a class="quick-action" href="{{ url_for('finance.pledges') }}">{{ icon('handshake', 20) }}Pledges</a>
+        <a class="quick-action" href="{{ url_for('finance.campaigns') }}">{{ icon('target', 20) }}Campaigns</a>
+        <a class="quick-action" href="{{ url_for('finance.budgets') }}">{{ icon('piggy-bank', 20) }}Budgets</a>
+        {% if has_endpoint('accounting.index') and can('accounting.view') %}<a class="quick-action" href="{{ url_for('accounting.index') }}">{{ icon('landmark', 20) }}Accounting</a>{% endif %}
+      </div>
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

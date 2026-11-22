@@ -1,0 +1,30 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}New counselling case{% endblock %}
+{% block content %}
+{{ ui.page_header('New counselling case') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('Person') %}
+  <div class="form-grid">
+    {{ ui.input('number', 'Membership number', form.get('number', ''), placeholder='e.g. GCI-000124') }}
+    {{ ui.input('client_name', 'Or name (not a member)', form.get('client_name', '')) }}
+    {{ ui.input('client_phone', 'Phone', form.get('client_phone', ''), 'tel') }}
+  </div>
+  {% endcall %}
+  {% call ui.card('Case') %}
+  <div class="form-grid">
+    {% set cat_options = [] %}{% for c in categories %}{% set _ = cat_options.append((c, c)) %}{% endfor %}
+    {{ ui.select('category', cat_options, 'Category', form.get('category', 'Spiritual')) }}
+    {% set co = [] %}{% for a in counsellors %}{% set _ = co.append((a.public_id, a.display_name)) %}{% endfor %}
+    {{ ui.select('counsellor', co, 'Counsellor', form.get('counsellor', g.account.public_id)) }}
+    {{ ui.input('opened_on', 'Opened on', form.get('opened_on', today.isoformat()), 'date') }}
+    <label class="check"><input type="checkbox" name="is_restricted" value="y"{% if form.get('is_restricted') %} checked{% endif %}> Restricted: only the counsellor can see this case</label>
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('counselling.index') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Open case</span></button>
+  </div>
+</form>
+{% endblock %}

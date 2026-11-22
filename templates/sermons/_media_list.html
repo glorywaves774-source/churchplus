@@ -1,0 +1,10 @@
+{% set kind_icon = {'audio': 'music', 'video': 'video', 'document': 'file-text', 'image': 'image', 'link': 'link'} %}
+<ul class="feed">{% for m in items %}<li>
+  <span class="feed-icon">{{ icon(kind_icon[m.kind.value], 16) }}</span>
+  <div class="grow">
+    <a class="feed-text" href="{{ url_for('sermons.download', public_id=m.public_id) if m.file_key else m.url }}"{% if not m.file_key %} rel="noopener" target="_blank"{% endif %}>{{ m.title }}</a>
+    <div class="feed-time">{{ m.kind.value|capitalize }}{% if m.category %} · {{ m.category }}{% endif %}{% if m.size %} · {{ (m.size / 1048576)|round(1) }} MB{% endif %}{% if m.sermon and show_sermon %} · <a href="{{ url_for('sermons.detail', public_id=m.sermon.public_id) }}">{{ m.sermon.title }}</a>{% endif %} · {{ m.visibility.value }}</div>
+    {% if m.file_key and m.kind.value == 'audio' %}<audio class="media-player" controls preload="none" src="{{ url_for('sermons.download', public_id=m.public_id, inline=1) }}"></audio>{% endif %}
+  </div>
+  {% if can('sermons.delete') %}<form method="post" action="{{ url_for('sermons.delete_media', public_id=m.public_id) }}" class="no-print"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ request.path }}"><button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="Delete {{ m.title }}">{{ icon('trash-2', 15) }}</button></form>{% endif %}
+</li>{% endfor %}</ul>

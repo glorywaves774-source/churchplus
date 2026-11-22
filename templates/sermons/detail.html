@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ s.title }}{% endblock %}
+{% block content %}
+{% call ui.page_header(s.title, s.preacher ~ ' · ' ~ s.preached_on.strftime('%A %d %B %Y')) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print notes</span></button>
+  {% if can('sermons.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('sermons.edit', public_id=s.public_id)) }}{% endif %}
+{% endcall %}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Sermon') %}
+      <dl class="kv">
+        {% if s.scripture %}<dt>Scripture</dt><dd>{{ s.scripture }}</dd>{% endif %}
+        {% if s.series %}<dt>Series</dt><dd><a href="{{ url_for('sermons.index', series=s.series) }}">{{ s.series }}</a></dd>{% endif %}
+        {% if s.category %}<dt>Category</dt><dd>{{ s.category }}</dd>{% endif %}
+        <dt>Shown to</dt><dd>{{ {'staff': 'Church staff only', 'members': 'Members', 'public': 'Everyone (website)'}[s.visibility.value] }}</dd>
+        {% if s.video_url %}<dt>Video</dt><dd><a href="{{ s.video_url }}" rel="noopener" target="_blank">{{ icon('play', 14) }} Watch</a></dd>{% endif %}
+        {% if s.audio_url %}<dt>Audio</dt><dd><a href="{{ s.audio_url }}" rel="noopener" target="_blank">{{ icon('music', 14) }} Listen</a></dd>{% endif %}
+      </dl>
+      {% if s.summary %}<p class="mt-4">{{ s.summary }}</p>{% endif %}
+    {% endcall %}
+    {% if s.notes %}{% call ui.card('Notes') %}<div class="prose pre-wrap">{{ s.notes }}</div>{% endcall %}{% endif %}
+  </div>
+  <div class="stack">
+    {% call ui.card('Recordings and files', flush=True) %}
+      {% if s.media %}{% with items=s.media, show_sermon=False %}{% include "sermons/_media_list.html" %}{% endwith %}
+      {% else %}{{ ui.empty_state('No files yet', icon_name='upload') }}{% endif %}
+    {% endcall %}
+    {% if can('sermons.create') %}{% call ui.card('Add a file or link', id='upload') %}{% with sermon=s %}{% include "sermons/_upload.html" %}{% endwith %}{% endcall %}{% endif %}
+    {% if can('sermons.delete') %}<div class="no-print">{{ ui.confirm_button(url_for('sermons.delete', public_id=s.public_id), 'Delete sermon', 'Delete ' ~ s.title ~ '? Its files stay in the media library.', 'Delete', 'trash-2', 'ghost', 'sm') }}</div>{% endif %}
+  </div>
+</div>
+{% endblock %}

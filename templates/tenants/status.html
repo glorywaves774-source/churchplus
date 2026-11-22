@@ -1,0 +1,12 @@
+{% extends "layouts/auth.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block card %}
+<span class="stat-icon tone-gold">{{ icon(icon_name, 20) }}</span>
+<h1 class="mt-4">{{ title }}</h1>
+<p class="text-muted">{{ message }}</p>
+{% if action %}<p><a class="btn btn-primary btn-block" href="{{ action[0] }}">{{ icon('credit-card', 17) }}<span>{{ action[1] }}</span></a></p>{% endif %}
+<form method="post" action="{{ url_for('auth.logout') }}">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-block">{{ icon('log-out', 17) }}<span>Sign out</span></button>
+</form>
+{% endblock %}

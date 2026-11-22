@@ -1,0 +1,51 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Receipt {{ c.receipt_number }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Receipt ' ~ c.receipt_number) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+  {% if can('finance.create') %}{{ ui.button('Record another', 'plus', 'primary', href=url_for('finance.record_giving')) }}{% endif %}
+{% endcall %}
+<div class="grid grid-main-side">
+  <section class="card receipt-card">
+    <div class="card-body">
+      <div class="receipt-head">
+        <div>
+          <div class="receipt-church" translate="no">{{ g.tenant.name }}</div>
+          <div class="help" translate="no">{{ [g.tenant.address_line1, g.tenant.city, g.tenant.phone]|select|join(' · ') }}</div>
+        </div>
+        <div class="receipt-no"><span class="help">Official receipt</span><strong translate="no">{{ c.receipt_number }}</strong></div>
+      </div>
+      {% if c.status.value == 'void' %}{{ ui.alert('This receipt was voided: ' ~ c.void_reason, 'danger', 'VOID') }}{% endif %}
+      <dl class="kv receipt-kv">
+        <dt>Date</dt><dd>{{ c.received_on.strftime('%d %B %Y') }}</dd>
+        <dt>Received from</dt><dd translate="no">{{ c.giver }}{% if c.member %} ({{ c.member.membership_number }}){% endif %}</dd>
+        <dt>For</dt><dd>{{ c.income_account.name }}{% if c.campaign %} – {{ c.campaign.name }}{% endif %}{% if c.pledge %} (pledge payment){% endif %}</dd>
+        <dt>Method</dt><dd>{{ c.method.value|replace('_', ' ')|capitalize }}{% if c.reference %} · <span translate="no">{{ c.reference }}</span>{% endif %}</dd>
+        {% if c.service %}<dt>Service</dt><dd>{{ c.service.title }}, {{ c.service.service_date.strftime('%d %b %Y') }}</dd>{% endif %}
+        <dt>Amount</dt><dd class="receipt-amount">{{ c.amount|money }}</dd>
+      </dl>
+      <p class="help mb-0">Thank you for your generosity. “God loves a cheerful giver.” – 2 Corinthians 9:7</p>
+    </div>
+  </section>
+  <div class="stack no-print">
+    {% call ui.card('Accounting') %}
+      <dl class="kv">
+        <dt>Paid into</dt><dd>{{ c.deposit_account.name }}</dd>
+        <dt>Journal</dt><dd>{% if c.journal_entry and has_endpoint('accounting.journal') %}<a href="{{ url_for('accounting.journal', public_id=c.journal_entry.public_id) }}">{{ c.journal_entry.number }}</a>{% else %}{{ c.journal_entry.number if c.journal_entry else '—' }}{% endif %}</dd>
+        <dt>Recorded</dt><dd>{{ c.created_at.strftime('%d %b %Y, %H:%M') }}</dd>
+      </dl>
+    {% endcall %}
+    {% if c.member %}{{ ui.button('Giving statement', 'file-text', href=url_for('finance.statement', member_id=c.member.public_id)) }}{% endif %}
+    {% if can('finance.edit') and c.status.value == 'posted' %}
+    {% call ui.card('Void this receipt', 'A reversing journal entry is posted. The receipt number is never reused.') %}
+      <form method="post" action="{{ url_for('finance.void_receipt', public_id=c.public_id) }}" class="stack" data-confirm="Void {{ c.receipt_number }}? This cannot be undone." data-confirm-action="Void receipt">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('reason', 'Reason', required=True, placeholder='e.g. Recorded twice') }}
+        <button class="btn btn-danger btn-sm" type="submit">{{ icon('x-circle', 15) }}<span>Void receipt</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

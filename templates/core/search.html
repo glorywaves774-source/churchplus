@@ -1,0 +1,25 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Search{% endblock %}
+{% block content %}
+{{ ui.page_header('Search results' if q else 'Search', ('Results for “' ~ q ~ '”') if q else 'Search across members, visitors, events and more.') }}
+<section class="card">
+  {% if results %}
+  <ul class="feed">
+    {% for r in results %}
+    <li>
+      <span class="feed-icon">{{ icon(r.icon, 16) }}</span>
+      <div class="min-w-0">
+        <a class="feed-text" href="{{ r.url }}" translate="no">{{ r.title }}</a>
+        <div class="feed-time">{{ r.kind }}{% if r.subtitle %} · <span translate="no">{{ r.subtitle }}</span>{% endif %}</div>
+      </div>
+    </li>
+    {% endfor %}
+  </ul>
+  {% elif q|length >= 2 %}
+    {{ ui.empty_state('No results', 'Nothing matched “' ~ q ~ '”. Try a different spelling or fewer words.', 'search') }}
+  {% else %}
+    {{ ui.empty_state('Start typing to search', 'Enter at least two characters in the search box.', 'search') }}
+  {% endif %}
+</section>
+{% endblock %}

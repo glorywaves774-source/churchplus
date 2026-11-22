@@ -1,0 +1,50 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Classes and teachers{% endblock %}
+{% block content %}
+{{ ui.page_header('Classes and teachers', 'Teachers are cleared to serve when both their background check and safeguarding training are less than 3 years old.') }}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% for k in rows %}
+    {% call ui.card(k.name, (k.min_age ~ '–' ~ k.max_age ~ ' years') ~ (' · ' ~ k.room if k.room else '') ~ ' · ' ~ counts.get(k.id, 0) ~ ' children', id='class-' ~ k.public_id, flush=True) %}
+      {% if k.teachers %}
+      <div class="table-wrap"><table class="table">
+        <thead><tr><th>Teacher</th><th>Role</th><th>Background check</th><th>Safeguarding training</th><th>Cleared</th><th class="col-actions"></th></tr></thead>
+        <tbody>{% for t in k.teachers %}<tr>
+          <td class="wrap" translate="no">{{ t.member.display_name }}</td>
+          <td class="nowrap">{{ t.role }}</td>
+          <td class="nowrap">{{ t.background_check_date.strftime('%d %b %Y') if t.background_check_date else '—' }}</td>
+          <td class="nowrap">{{ t.safeguarding_training_date.strftime('%d %b %Y') if t.safeguarding_training_date else '—' }}</td>
+          <td>{{ ui.badge('Cleared', 'success') if t.is_cleared(today) else ui.badge('Not cleared', 'warning') }}</td>
+          <td class="col-actions">{% if can('children.edit') %}<form method="post" action="{{ url_for('children.remove_teacher', class_id=k.public_id, teacher_id=t.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="Remove {{ t.member.display_name }}">{{ icon('x', 15) }}</button></form>{% endif %}</td>
+        </tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}{{ ui.empty_state('No teachers yet', icon_name='user-check') }}{% endif %}
+      {% if can('children.edit') %}
+      <form method="post" action="{{ url_for('children.add_teacher', class_id=k.public_id) }}" class="card-body form-grid no-print">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('number', 'Membership number', required=True) }}
+        {{ ui.input('role', 'Role', 'Teacher') }}
+        {{ ui.input('background_check_date', 'Background check date', type='date') }}
+        {{ ui.input('safeguarding_training_date', 'Safeguarding training date', type='date') }}
+        <div class="field"><button class="btn btn-sm" type="submit">{{ icon('user-plus', 15) }}<span>Add or update teacher</span></button></div>
+      </form>
+      {% endif %}
+    {% endcall %}
+    {% else %}<section class="card">{{ ui.empty_state('No classes yet', 'Create classes by age group, e.g. Nursery 0–3, Beginners 4–6.', 'school') }}</section>{% endfor %}
+  </div>
+  {% if can('children.edit') %}
+  {% call ui.card('Add a class') %}
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('name', 'Name', required=True, placeholder='e.g. Beginners') }}
+      {{ ui.input('min_age', 'From age', '0', 'number', attrs={'min': 0, 'max': 25}) }}
+      {{ ui.input('max_age', 'To age', '5', 'number', attrs={'min': 0, 'max': 25}) }}
+      {{ ui.input('room', 'Room') }}
+      <label class="check"><input type="checkbox" name="is_youth" value="y"> Youth group</label>
+      <button class="btn btn-primary btn-sm" type="submit">{{ icon('plus', 15) }}<span>Add class</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

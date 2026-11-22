@@ -1,0 +1,20 @@
+{% extends "layouts/public.html" %}
+{% block title %}{{ s.title }} · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">{{ s.title }}</h1>
+<p class="site-sub" translate="no">{{ s.preacher }} · {{ s.preached_on.strftime('%A %d %B %Y') }}{% if s.scripture %} · {{ s.scripture }}{% endif %}</p>
+<div class="grid grid-main-side">
+  {% call ui.card() %}
+    {% if s.summary %}<p>{{ s.summary }}</p>{% endif %}
+    {% if s.notes %}<div class="prose pre-wrap">{{ s.notes }}</div>{% endif %}
+    <div class="cluster mt-4">
+      {% if s.video_url %}<a class="btn btn-primary" href="{{ s.video_url }}" rel="noopener" target="_blank">{{ icon('play', 16) }}<span>Watch</span></a>{% endif %}
+      {% if s.audio_url %}<a class="btn" href="{{ s.audio_url }}" rel="noopener" target="_blank">{{ icon('music', 16) }}<span>Listen</span></a>{% endif %}
+    </div>
+  {% endcall %}
+  {% if media %}{% call ui.card('Recordings and files', flush=True) %}
+    <ul class="feed">{% for m in media %}<li><span class="feed-icon">{{ icon('file-text' if m.kind.value == 'document' else 'music' if m.kind.value == 'audio' else 'link', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('website.site_media', public_id=m.public_id) if m.file_key else m.url }}" rel="noopener">{{ m.title }}</a>
+    {% if m.file_key and m.kind.value == 'audio' %}<audio class="media-player" controls preload="none" src="{{ url_for('website.site_media', public_id=m.public_id, inline=1) }}"></audio>{% endif %}</div></li>{% endfor %}</ul>
+  {% endcall %}{% endif %}
+</div>
+{% endblock %}

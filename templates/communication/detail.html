@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Message{% endblock %}
+{% block content %}
+{% call ui.page_header(m.audience_label or 'Message', {'sms': 'SMS', 'whatsapp': 'WhatsApp', 'email': 'Email'}[m.channel.value] ~ ' · ' ~ ((m.sent_at or m.scheduled_at)|localtime)) %}
+  {{ ui.badge(m.status.value, {'sent': 'success', 'scheduled': 'info', 'sending': 'info', 'failed': 'danger', 'cancelled': '', 'draft': ''}[m.status.value]) }}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('People', m.recipients_count, 'users') }}
+  {{ ui.stat_card('Sent', m.sent_count, 'check-circle-2', 'success') }}
+  {{ ui.stat_card('Failed', m.failed_count, 'alert-circle', 'danger' if m.failed_count else '') }}
+  {% if m.channel.value == 'sms' %}{{ ui.stat_card('SMS parts', m.segments * m.sent_count, 'message-square', 'info', note=m.segments ~ ' per person') }}{% endif %}
+</div>
+<div class="grid grid-main-side">
+  {% call ui.card('Recipients', flush=True) %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Name</th><th>To</th><th>Status</th><th>Note</th></tr></thead>
+      <tbody>{% for r in recips %}<tr>
+        <td class="wrap" translate="no">{{ r.name or '—' }}</td>
+        <td class="nowrap" translate="no">{{ r.address }}</td>
+        <td>{{ ui.badge(r.status.value, {'sent': 'success', 'pending': 'info', 'failed': 'danger', 'skipped': ''}[r.status.value]) }}</td>
+        <td class="wrap">{{ r.error or '' }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card('Message') %}
+      {% if m.subject %}<p><strong>{{ m.subject }}</strong></p>{% endif %}
+      <div class="message-bubble pre-wrap">{{ m.body }}</div>
+    {% endcall %}
+    {% if m.status.value == 'scheduled' and can('communication.create') %}
+    <div class="cluster no-print">
+      <form method="post" action="{{ url_for('communication.message_action', public_id=m.public_id, action='send') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-primary btn-sm" type="submit">{{ icon('send', 15) }}<span>Send now</span></button></form>
+      <form method="post" action="{{ url_for('communication.message_action', public_id=m.public_id, action='cancel') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">{{ icon('x', 15) }}<span>Cancel</span></button></form>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

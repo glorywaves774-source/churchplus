@@ -1,0 +1,13 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Two-step sign-in{% endblock %}
+{% block card %}
+<span class="stat-icon">{{ icon('shield-check', 20) }}</span>
+<h1 class="mt-4">Enter your code</h1>
+<p class="text-muted">Open your authenticator app and enter the 6-digit code for ChurchPlus. Lost your phone? Enter one of your recovery codes instead.</p>
+<form method="post" class="stack" novalidate>
+  {{ form.csrf_token }}
+  {{ ui.field(form.code, icon_name='lock', placeholder='123 456') }}
+  <button type="submit" class="btn btn-primary btn-block">{{ icon('check', 18) }}<span>Verify and sign in</span></button>
+</form>
+{% endblock %}
+{% block foot %}<a href="{{ url_for('auth.login') }}">Use a different account</a>{% endblock %}

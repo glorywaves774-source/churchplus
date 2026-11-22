@@ -1,0 +1,29 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Leave{% endblock %}
+{% block content %}
+{{ ui.page_header('Leave', 'Requests awaiting approval and people currently or soon on leave.') }}
+<div class="grid grid-2">
+  {% call ui.card('Awaiting approval', flush=True) %}
+    {% if pending %}
+    <ul class="feed">
+      {% for l in pending %}
+      <li><span class="feed-icon">{{ icon('clock', 16) }}</span>
+        <div class="grow"><a class="feed-text" href="{{ url_for('clergy.profile', public_id=l.staff.public_id) }}#leave" translate="no">{{ l.staff.display_name }}</a>
+          <div class="feed-time">{{ l.leave_type.value|capitalize }} · {{ l.start_date.strftime('%d %b') }} – {{ l.end_date.strftime('%d %b') }} · {{ l.days }} days{% if l.reason %} · {{ l.reason }}{% endif %}</div></div>
+        {% if can('clergy.approve') %}<div class="cluster">
+          <form method="post" action="{{ url_for('clergy.decide_leave', leave_id=l.public_id, decision='approve') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm" type="submit">Approve</button></form>
+          <form method="post" action="{{ url_for('clergy.decide_leave', leave_id=l.public_id, decision='reject') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost" type="submit">Reject</button></form>
+        </div>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}{{ ui.empty_state('Nothing awaiting approval', icon_name='check-circle-2') }}{% endif %}
+  {% endcall %}
+  {% call ui.card('On leave now or soon', flush=True) %}
+    {% if current %}
+    <ul class="feed">{% for l in current %}<li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span><div><a class="feed-text" href="{{ url_for('clergy.profile', public_id=l.staff.public_id) }}" translate="no">{{ l.staff.display_name }}</a><div class="feed-time">{{ l.leave_type.value|capitalize }} · {{ l.start_date.strftime('%d %b') }} – {{ l.end_date.strftime('%d %b %Y') }}{% if l.start_date <= today %} · {{ ui.badge('On leave', 'info') }}{% endif %}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No approved leave coming up', icon_name='calendar-days') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

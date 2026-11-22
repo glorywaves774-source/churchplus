@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Labels – {{ c.member.display_name }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Check-in labels', 'Stick one on the child. Give the other to the parent. The codes must match at pick-up.') %}
+  <button class="btn btn-primary" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+  {{ ui.button('Done', 'check', href=url_for('children.index')) }}
+{% endcall %}
+<div class="label-sheet">
+  <div class="card child-label">
+    <div class="person-sub">CHILD</div>
+    <div class="name" translate="no">{{ c.member.display_name }}</div>
+    <div>{{ c.child_class.name if c.child_class else '' }}{% if c.child_class and c.child_class.room %} · {{ c.child_class.room }}{% endif %}</div>
+    <div class="pickup-code mt-4">{{ ci.pickup_code }}</div>
+    {% if c.allergies %}<div class="warn">{{ icon('shield-alert', 14) }} Allergy: {{ c.allergies }}</div>{% endif %}
+    {% if not c.photo_consent %}<div class="warn">No photos</div>{% endif %}
+    <div class="person-sub mt-4">{{ ci.check_in_date.strftime('%d %b %Y') }} · {{ ci.checked_in_at|localtime('%H:%M') }}</div>
+  </div>
+  <div class="card child-label">
+    <div class="person-sub">PARENT / GUARDIAN – keep this to collect</div>
+    <div class="name" translate="no">{{ c.member.display_name }}</div>
+    <div>{{ c.child_class.name if c.child_class else '' }}</div>
+    <div class="pickup-code mt-4">{{ ci.pickup_code }}</div>
+    <div class="person-sub mt-4" translate="no">{{ g.tenant.name }} · {{ ci.check_in_date.strftime('%d %b %Y') }}</div>
+  </div>
+</div>
+{% endblock %}

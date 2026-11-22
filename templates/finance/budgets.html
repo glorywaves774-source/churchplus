@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Budgets{% endblock %}
+{% block content %}
+{{ ui.page_header('Budgets', 'Plan income and spending for the year, by category and by department.') }}
+<div class="grid grid-main-side">
+  {% call ui.card(flush=True) %}
+    {% if rows %}<ul class="feed">{% for b in rows %}<li><span class="feed-icon">{{ icon('piggy-bank', 16) }}</span><div><a class="feed-text" href="{{ url_for('finance.budget', public_id=b.public_id) }}">{{ b.name }}</a><div class="feed-time">{{ b.start_date.strftime('%d %b %Y') }} – {{ b.end_date.strftime('%d %b %Y') }}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No budgets yet', icon_name='piggy-bank') }}{% endif %}
+  {% endcall %}
+  {% if can('finance.manage_settings') %}
+  {% call ui.card('New budget') %}
+    <form method="post" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('name', 'Name', year ~ ' budget', required=True) }}
+      {{ ui.input('start_date', 'From', year ~ '-01-01', 'date', required=True) }}
+      {{ ui.input('end_date', 'To', year ~ '-12-31', 'date', required=True) }}
+      <button class="btn btn-primary" type="submit">{{ icon('plus', 17) }}<span>Create</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Register your church{% endblock %}
+{% block shell_class %} wide{% endblock %}
+{% block card %}
+<h1>Register your church</h1>
+<p class="text-muted">Start with a free trial. Your church gets its own private, secure workspace.</p>
+<form method="post" class="form-grid" novalidate>
+  {{ form.csrf_token }}
+  <p class="form-section-title">Your church</p>
+  {{ ui.field(form.church_name, span=True, placeholder='e.g. Grace Chapel International') }}
+  <fieldset class="field span-2 fieldset-plain">
+    <legend class="label">{{ form.kind.label.text }}</legend>
+    <div class="radio-group">
+      {% for opt in form.kind %}
+      <label class="radio-card">{{ opt() }}<span>{{ opt.label.text }}</span></label>
+      {% endfor %}
+    </div>
+  </fieldset>
+  {{ ui.field(form.country) }}
+  {{ ui.field(form.city, placeholder='e.g. Accra') }}
+  {{ ui.field(form.church_phone, placeholder='030 000 0000', icon_name='phone') }}
+  {{ ui.field(form.plan, help='Free trial first. Change plans at any time.') }}
+
+  <p class="form-section-title">Your account</p>
+  {{ ui.field(form.first_name) }}
+  {{ ui.field(form.last_name) }}
+  {{ ui.field(form.email, span=True, icon_name='mail') }}
+  {{ ui.field(form.password, help='At least 10 characters, mixing letters, numbers or symbols.') }}
+  {{ ui.field(form.confirm) }}
+  {{ ui.field(form.accept, span=True) }}
+  <div class="span-2">
+    <button type="submit" class="btn btn-primary btn-block">{{ icon('sparkles', 18) }}<span>Create church workspace</span></button>
+  </div>
+</form>
+{% endblock %}
+{% block foot %}Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a>{% endblock %}

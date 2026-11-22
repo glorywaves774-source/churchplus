@@ -1,0 +1,72 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Church settings{% endblock %}
+{% block content %}
+{{ ui.page_header('Church profile', 'How your church appears across ChurchPlus, receipts and your website.') }}
+
+<div class="grid grid-main-side">
+  {% call ui.card('Profile and contact') %}
+  <form method="post" class="form-grid" novalidate>
+    {{ form.csrf_token }}
+    {{ ui.field(form.name, span=True) }}
+    {{ ui.field(form.legal_name) }}
+    {{ ui.field(form.tagline) }}
+    {{ ui.field(form.email, icon_name='mail') }}
+    {{ ui.field(form.phone, icon_name='phone') }}
+    {{ ui.field(form.website, span=True, placeholder='https://') }}
+    <p class="form-section-title">Address</p>
+    {{ ui.field(form.address_line1, span=True) }}
+    {{ ui.field(form.address_line2, span=True) }}
+    {{ ui.field(form.city) }}
+    {{ ui.field(form.region) }}
+    {{ ui.field(form.country) }}
+    {{ ui.field(form.digital_address, placeholder='GA-123-4567') }}
+    <p class="form-section-title">Regional settings and branding</p>
+    {{ ui.field(form.currency) }}
+    {{ ui.field(form.timezone) }}
+    {{ ui.field(form.primary_color, placeholder='#5b3fd1', help='Used on your church website and documents.') }}
+    {{ ui.field(form.accent_color, placeholder='#c9a227') }}
+    <div class="form-actions span-2">
+      <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Save profile</span></button>
+    </div>
+  </form>
+  {% endcall %}
+
+  <div class="stack">
+    {% call ui.card('Church logo', 'PNG, JPG or WEBP, up to ' ~ (config.MAX_CONTENT_LENGTH // 1048576) ~ ' MB.') %}
+      <div class="cluster mb-4">
+        {% if g.tenant.logo_key %}
+          <img class="logo-preview" src="{{ url_for('tenants.logo') }}" alt="{{ g.tenant.name }} logo">
+        {% else %}
+          <span class="logo-placeholder" translate="no">{{ g.tenant.name|initials }}</span>
+        {% endif %}
+      </div>
+      <form method="post" action="{{ url_for('tenants.upload_logo') }}" enctype="multipart/form-data" class="stack">
+        {{ logo_form.csrf_token }}
+        {{ ui.field(logo_form.logo) }}
+        <button type="submit" class="btn">{{ icon('upload', 17) }}<span>Upload logo</span></button>
+      </form>
+      {% if g.tenant.logo_key %}
+      <div class="mt-1">{{ ui.confirm_button(url_for('tenants.remove_logo'), 'Remove logo', 'Your church logo will be removed.', 'Remove', 'trash-2', 'ghost', 'sm') }}</div>
+      {% endif %}
+    {% endcall %}
+    {% call ui.card('Workspace') %}
+      <dl class="kv">
+        <dt>Workspace ID</dt><dd translate="no">{{ g.tenant.slug }}</dd>
+        <dt>Type</dt><dd>{{ g.tenant.kind.value|replace('_', ' ')|capitalize }}</dd>
+        <dt>Status</dt><dd>{{ ui.badge(g.tenant.status.value) }}</dd>
+        <dt>Created</dt><dd>{{ g.tenant.created_at.strftime('%d %b %Y') }}</dd>
+      </dl>
+    {% endcall %}
+    {% if g.account.is_owner %}
+    {% call ui.card('Download your data', 'Every record as spreadsheet (CSV) files in one ZIP.') %}
+      <form method="post" action="{{ url_for('tenants.export_data') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-sm" type="submit">{{ icon('download', 15) }}<span>Download church data</span></button>
+      </form>
+      <p class="help mt-4">For privacy, counselling, safeguarding and confidential prayer records are not included.</p>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

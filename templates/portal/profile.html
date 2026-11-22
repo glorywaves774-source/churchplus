@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}My details{% endblock %}
+{% block content %}
+{{ ui.page_header('My details', 'Your church keeps these private. Ask the church office to change your name or date of birth.') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('Contact') %}
+  <div class="form-grid">
+    {{ ui.input('phone', 'Phone', m.phone or '', 'tel') }}
+    {{ ui.input('alt_phone', 'Other phone', m.alt_phone or '', 'tel') }}
+    {{ ui.input('email', 'Email', m.email or '', 'email', span=True) }}
+    {{ ui.input('address', 'House address', m.address or '', span=True) }}
+    {{ ui.input('city', 'Town or city', m.city or '') }}
+    {{ ui.input('region', 'Region', m.region or '') }}
+    {{ ui.input('digital_address', 'Ghana Post GPS', m.digital_address or '', placeholder='e.g. GA-123-4567') }}
+    {{ ui.input('occupation', 'Occupation', m.occupation or '') }}
+  </div>
+  {% endcall %}
+  {% call ui.card('In an emergency, contact') %}
+  <div class="form-grid">
+    {{ ui.input('emergency_name', 'Name', m.emergency_name or '') }}
+    {{ ui.input('emergency_phone', 'Phone', m.emergency_phone or '', 'tel') }}
+    {{ ui.input('emergency_relation', 'Relationship', m.emergency_relation or '') }}
+  </div>
+  {% endcall %}
+  {% call ui.card('Messages from the church') %}
+  <div class="stack">
+    <label class="check"><input type="checkbox" name="sms" value="y"{% if not m.sms_opt_out %} checked{% endif %}> SMS</label>
+    <label class="check"><input type="checkbox" name="email_ok" value="y"{% if not m.email_opt_out %} checked{% endif %}> Email</label>
+    <label class="check"><input type="checkbox" name="whatsapp" value="y"{% if m.whatsapp_opt_in %} checked{% endif %}> WhatsApp</label>
+    <label class="check"><input type="checkbox" name="birthday" value="y"{% if m.allow_birthday_messages %} checked{% endif %}> Birthday greetings</label>
+  </div>
+  {% endcall %}
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button></div>
+</form>
+{% endblock %}

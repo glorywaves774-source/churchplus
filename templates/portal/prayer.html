@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Prayer{% endblock %}
+{% block content %}
+{{ ui.page_header('Prayer requests', 'The prayer team will stand with you') }}
+<div class="grid grid-main-side">
+  {% call ui.card('Send a prayer request') %}
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {% set co = [] %}{% for c in categories %}{% set _ = co.append((c, c)) %}{% endfor %}
+      {{ ui.select('category', co, 'Category', 'General') }}
+      <div class="field"><label class="label" for="f-request">Your request</label><textarea class="textarea" id="f-request" name="request" required></textarea></div>
+      <label class="check"><input type="checkbox" name="is_confidential" value="y"> Keep it confidential (only the pastors see it)</label>
+      <label class="check"><input type="checkbox" name="wants_contact" value="y"> I would like someone to call me</label>
+      <button class="btn btn-primary" type="submit">{{ icon('send', 16) }}<span>Send</span></button>
+    </form>
+  {% endcall %}
+  {% call ui.card('My requests', flush=True) %}
+    {% if mine %}<ul class="feed">{% for p in mine %}<li><span class="feed-icon">{{ icon('heart', 16) }}</span><div class="grow"><div class="feed-text">{{ p.request|truncate(120) }}</div><div class="feed-time">{{ p.created_at|localtime('%d %b %Y') }} · {{ p.category }}</div></div>{{ ui.badge({'open': 'received', 'praying': 'praying', 'answered': 'answered', 'closed': 'closed'}[p.status.value], {'open': 'info', 'praying': 'warning', 'answered': 'success', 'closed': ''}[p.status.value]) }}</li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No requests yet', icon_name='heart') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "finance/_macros.html" as fm with context %}
+{% block title %}Campaigns and projects{% endblock %}
+{% block content %}
+{{ ui.page_header('Campaigns and projects', 'Building funds, harvests, welfare drives and other fundraising.') }}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% for r in rows %}
+    {% call ui.card(r.c.name, (r.c.start_date.strftime('%d %b %Y') if r.c.start_date else '') ~ (' – ' ~ r.c.end_date.strftime('%d %b %Y') if r.c.end_date else '')) %}
+      <div class="grid grid-stats mb-4">
+        {{ ui.stat_card('Raised', r.raised|money, 'hand-coins', 'success') }}
+        {{ ui.stat_card('Pledged', r.pledged|money, 'handshake', 'gold') }}
+        {% if r.c.target_amount %}{{ ui.stat_card('Target', r.c.target_amount|money, 'target', 'info', note=(r.percent ~ '% raised')) }}{% endif %}
+      </div>
+      {% if r.c.target_amount %}<progress class="progress" max="100" value="{{ r.percent }}" aria-label="Raised"></progress>{% endif %}
+      {% if r.c.description %}<p class="help mt-4 mb-0">{{ r.c.description }}</p>{% endif %}
+    {% endcall %}
+    {% else %}<section class="card">{{ ui.empty_state('No campaigns yet', icon_name='target') }}</section>{% endfor %}
+  </div>
+  {% if can('finance.manage_settings') %}
+  {% call ui.card('New campaign') %}
+    <form method="post" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('name', 'Name', required=True, placeholder='e.g. New Auditorium Project') }}
+      {{ fm.account_select('income_account', 'Recorded as', income_accounts, help='Usually “Project and building contributions”.') }}
+      {{ fm.amount_input('target', 'Target', required=False) }}
+      {{ ui.input('start_date', 'Starts', '', 'date') }}
+      {{ ui.input('end_date', 'Ends', '', 'date') }}
+      <div class="field"><label class="label" for="f-description">Description</label><textarea class="textarea" id="f-description" name="description"></textarea></div>
+      <button class="btn btn-primary" type="submit">{{ icon('plus', 17) }}<span>Create</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

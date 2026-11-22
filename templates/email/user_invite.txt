@@ -1,0 +1,10 @@
+Hello {{ user.first_name }},
+
+{{ inviter.full_name }} has invited you to {{ church.name }} on ChurchPlus as: {{ roles|map(attribute='name')|join(', ') }}.
+
+{% if is_new %}Choose your password to get started (this link expires in 3 days):{% else %}Sign in with your existing ChurchPlus account, then choose {{ church.name }}:{% endif %}
+{{ link }}
+
+If you were not expecting this invitation, you can ignore this email.
+
+— ChurchPlus, by Kayron Global Tech Services

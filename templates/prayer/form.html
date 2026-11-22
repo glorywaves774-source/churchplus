@@ -1,0 +1,34 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}New prayer request{% endblock %}
+{% block content %}
+{{ ui.page_header('New prayer request') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('Who is it from?') %}
+  <div class="form-grid">
+    {{ ui.input('number', 'Membership number', form.get('number', ''), placeholder='e.g. GCI-000124', help='Leave empty for a visitor or someone who is not a member.') }}
+    {{ ui.input('name', 'Or name', form.get('name', '')) }}
+    {{ ui.input('phone', 'Phone', form.get('phone', ''), 'tel') }}
+    <label class="check"><input type="checkbox" name="wants_contact" value="y"{% if form.get('wants_contact') %} checked{% endif %}> Would like someone to call</label>
+  </div>
+  {% endcall %}
+  {% call ui.card('Request') %}
+  <div class="form-grid">
+    {% set cat_options = [] %}{% for c in categories %}{% set _ = cat_options.append((c, c)) %}{% endfor %}
+    {{ ui.select('category', cat_options, 'Category', form.get('category', 'General')) }}
+    <label class="check"><input type="checkbox" name="is_confidential" value="y"{% if form.get('is_confidential') %} checked{% endif %}> Confidential</label>
+    <div class="field span-2"><label class="label" for="f-request">Prayer request</label><textarea class="textarea" id="f-request" name="request" required>{{ form.get('request', '') }}</textarea>
+      <div class="help">Confidential requests are seen only by the person they are assigned to and by pastors who approve prayer.</div></div>
+    {% set acc_options = [] %}{% for a in accounts %}{% set _ = acc_options.append((a.public_id, a.display_name)) %}{% endfor %}
+    {{ ui.select('assigned_to', acc_options, 'Assign to', form.get('assigned_to', ''), placeholder='Nobody yet') }}
+    {% set team_options = [] %}{% for d in teams %}{% set _ = team_options.append((d.public_id, d.name)) %}{% endfor %}
+    {{ ui.select('team', team_options, 'Prayer team', form.get('team', ''), placeholder='—') }}
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('prayer.index') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

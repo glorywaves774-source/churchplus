@@ -1,0 +1,54 @@
+/* Dark theme. Overrides tokens, so every component follows automatically;
+   a few surfaces are hand-tuned below. */
+[data-theme="dark"] {
+  color-scheme: dark;
+  --cp-bg: #0a0f1f;
+  --cp-bg-accent-1: rgba(109, 82, 224, 0.20);
+  --cp-bg-accent-2: rgba(201, 162, 39, 0.08);
+  --cp-surface: rgba(20, 28, 54, 0.78);
+  --cp-surface-solid: #151d38;
+  --cp-surface-sunken: #0f1630;
+  --cp-surface-hover: rgba(255, 255, 255, 0.04);
+  --cp-border: rgba(255, 255, 255, 0.08);
+  --cp-border-strong: rgba(255, 255, 255, 0.16);
+  --cp-text: #eef0f8;
+  --cp-text-muted: #a9b0c8;
+  --cp-text-subtle: #8189a6;
+  --cp-accent: #9a86ff;
+  --cp-accent-hover: #ab9bff;
+  --cp-accent-soft: rgba(154, 134, 255, 0.16);
+  --cp-on-accent: #120a33;
+  --cp-focus: rgba(154, 134, 255, 0.4);
+  --cp-purple-100: rgba(154, 134, 255, 0.18);
+  --cp-gold-100: rgba(201, 162, 39, 0.16);
+  --cp-gold-600: #e2c25a;
+
+  --cp-success: #4cc792; --cp-success-bg: rgba(76, 199, 146, 0.14);
+  --cp-warning: #f0b44c; --cp-warning-bg: rgba(240, 180, 76, 0.14);
+  --cp-danger:  #ff7b7b; --cp-danger-bg:  rgba(255, 123, 123, 0.14);
+  --cp-info:    #75a8ff; --cp-info-bg:    rgba(117, 168, 255, 0.14);
+
+  --cp-side-bg: linear-gradient(180deg, #080e22 0%, #060b1b 100%);
+  --cp-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --cp-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.32);
+  --cp-shadow-lg: 0 2px 8px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .status-pill { color: #f1d98a; }
+[data-theme="dark"] .btn-primary { box-shadow: 0 4px 14px rgba(154, 134, 255, .22); }
+[data-theme="dark"] .btn-danger { color: #2a0606; }
+[data-theme="dark"] .btn .badge-dot { border-color: var(--cp-surface-solid); }
+[data-theme="dark"] .alert .alert-body { color: var(--cp-text); }
+[data-theme="dark"] .select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23a9b0c8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .auth-card {
+  background: #0f1630;
+  box-shadow: 14px 14px 30px rgba(0, 0, 0, .5), -8px -8px 24px rgba(60, 76, 130, .14), inset 0 0 0 1px rgba(255,255,255,.05);
+}
+[data-theme="dark"] .auth-card .input {
+  background: #0c1228;
+  box-shadow: inset 4px 4px 10px rgba(0, 0, 0, .45), inset -3px -3px 8px rgba(60, 76, 130, .12);
+}
+[data-theme="dark"] .auth-card .input:focus { box-shadow: inset 4px 4px 10px rgba(0,0,0,.45), 0 0 0 4px var(--cp-focus); }
+[data-theme="dark"] input[type="date"]::-webkit-calendar-picker-indicator,
+[data-theme="dark"] input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(.85); }

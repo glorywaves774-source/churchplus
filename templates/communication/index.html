@@ -1,0 +1,45 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Communication{% endblock %}
+{% block content %}
+{% call ui.page_header('Communication', 'SMS, WhatsApp, email and announcements') %}
+  {{ ui.button('Announcements', 'megaphone', href=url_for('communication.announcements')) }}
+  {% if can('communication.manage_settings') %}{{ ui.button('Settings', 'settings', href=url_for('communication.comm_settings')) }}{% endif %}
+  {% if can('communication.create') %}{{ ui.button('New message', 'send', 'primary', href=url_for('communication.compose')) }}{% endif %}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('SMS parts sent this month', sms_month, 'message-square', 'info') }}
+  {{ ui.stat_card('Members reachable by SMS', reachable, 'users', 'success') }}
+  {{ ui.stat_card('Birthday greetings', 'On' if cfg.birthday_enabled else 'Off', 'cake', 'gold' if cfg.birthday_enabled else '', href=url_for('communication.comm_settings') if can('communication.manage_settings') else None) }}
+  {{ ui.stat_card('Event reminders', 'On' if cfg.event_reminders else 'Off', 'bell-ring', '') }}
+</div>
+<div class="grid grid-main-side">
+  {% call ui.card('Messages', flush=True) %}
+    {% if rows %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>When</th><th>To</th><th>Channel</th><th class="col-num">Sent</th><th>Status</th></tr></thead>
+      <tbody>{% for m in rows %}<tr>
+        <td class="nowrap">{{ (m.sent_at or m.scheduled_at)|localtime('%d %b %Y %H:%M') }}</td>
+        <td class="wrap"><a class="person-name" href="{{ url_for('communication.detail', public_id=m.public_id) }}">{{ m.audience_label or 'Message' }}</a><div class="person-sub">{{ m.body|truncate(70) }}</div></td>
+        <td class="nowrap">{{ {'sms': 'SMS', 'whatsapp': 'WhatsApp', 'email': 'Email'}[m.channel.value] }}</td>
+        <td class="num">{{ m.sent_count }} / {{ m.recipients_count }}</td>
+        <td>{{ ui.badge(m.status.value, {'sent': 'success', 'scheduled': 'info', 'sending': 'info', 'failed': 'danger', 'cancelled': '', 'draft': ''}[m.status.value]) }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No messages yet', 'Send an SMS, WhatsApp or email to your members.', 'send') }}{% endif %}
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card('Current announcements', flush=True) %}
+      {% if announcements %}<ul class="feed">{% for a in announcements %}<li><span class="feed-icon">{{ icon('megaphone', 16) }}</span><div class="grow"><div class="feed-text">{{ a.title }}</div><div class="feed-time">{{ {'staff': 'Staff', 'members': 'Members', 'public': 'Everyone'}[a.audience.value] }}{% if a.ends_on %} · until {{ a.ends_on.strftime('%d %b') }}{% endif %}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No current announcements', icon_name='megaphone') }}{% endif %}
+    {% endcall %}
+    {% call ui.card('Delivery services') %}
+      <dl class="kv">
+        <dt>SMS</dt><dd>{{ providers.sms }}</dd>
+        <dt>WhatsApp</dt><dd>{{ providers.whatsapp }}</dd>
+        <dt>Email</dt><dd>{{ providers.email }}</dd>
+      </dl>
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

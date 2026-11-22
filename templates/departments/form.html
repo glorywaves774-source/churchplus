@@ -1,0 +1,22 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit ' ~ dept.name if dept else 'New department' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit ' ~ dept.name if dept else 'New department or ministry') }}
+{% call ui.card() %}
+<form method="post" class="form-grid" novalidate>
+  {{ form.csrf_token }}
+  {{ ui.field(form.name) }}
+  {{ ui.field(form.kind) }}
+  {{ ui.field(form.leader, placeholder='e.g. GCI-000124') }}
+  {{ ui.field(form.branch) }}
+  {{ ui.field(form.meeting_schedule, span=True) }}
+  {{ ui.field(form.description, span=True) }}
+  {{ ui.field(form.is_active, span=True) }}
+  <div class="form-actions span-2">
+    <a class="btn" href="{{ url_for('departments.detail', public_id=dept.public_id) if dept else url_for('departments.index') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endcall %}
+{% endblock %}

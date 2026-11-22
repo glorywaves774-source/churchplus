@@ -1,0 +1,8 @@
+{% extends "layouts/auth.html" %}
+{% block title %}You're offline{% endblock %}
+{% block card %}
+<span class="stat-icon tone-gold">{{ icon('wifi-off', 20) }}</span>
+<h1 class="mt-4">You're offline</h1>
+<p class="text-muted">ChurchPlus needs an internet connection to show your church's information. For privacy, nothing about your church is stored on this device.</p>
+<p><a class="btn btn-primary btn-block" href="/dashboard">{{ icon('refresh-cw', 17) }}<span>Try again</span></a></p>
+{% endblock %}

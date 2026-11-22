@@ -1,0 +1,31 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+{% call ui.page_header('Welcome, ' ~ me.first_name, g.tenant.name ~ ' · Membership no. ' ~ me.membership_number) %}
+  {{ ui.button('Install app', 'smartphone', attrs={'data-install-app': '', 'hidden': ''}) }}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('My giving in ' ~ year, giving_total|money, 'hand-coins', 'gold', href=url_for('portal.giving')) }}
+  {{ ui.stat_card('Events I joined', mine|length, 'calendar-check', 'info', href=url_for('portal.events')) }}
+  {{ ui.stat_card('Prayer', 'Send a request', 'heart-handshake', '', href=url_for('portal.prayer')) }}
+  {{ ui.stat_card('My details', 'Keep them current', 'user-round', '', href=url_for('portal.profile')) }}
+</div>
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Announcements', flush=True) %}
+      {% if announcements %}<ul class="feed">{% for a in announcements %}<li><span class="feed-icon">{{ icon('pin' if a.is_pinned else 'megaphone', 16) }}</span><div class="grow"><div class="feed-text"><strong>{{ a.title }}</strong></div><div class="pre-wrap">{{ a.body }}</div><div class="feed-time">{{ a.starts_on.strftime('%d %b %Y') }}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No announcements right now', icon_name='megaphone') }}{% endif %}
+    {% endcall %}
+    {% call ui.card('Latest sermons', flush=True) %}
+      {% if sermons %}<ul class="feed">{% for s in sermons %}<li><span class="feed-icon">{{ icon('book-open', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('portal.sermon', public_id=s.public_id) }}">{{ s.title }}</a><div class="feed-time" translate="no">{{ s.preacher }} · {{ s.preached_on.strftime('%d %b %Y') }}{% if s.scripture %} · {{ s.scripture }}{% endif %}</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No sermons shared yet', icon_name='book-open') }}{% endif %}
+    {% endcall %}
+  </div>
+  {% call ui.card('Coming up', flush=True) %}
+    {% if events %}<ul class="feed">{% for e in events %}<li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span><div class="grow"><div class="feed-text">{{ e.title }}{% if e.id in mine %} {{ ui.badge('registered', 'success') }}{% endif %}</div><div class="feed-time">{{ e.starts_at.strftime('%a %d %b, %H:%M') }}{% if e.venue %} · <span translate="no">{{ e.venue }}</span>{% endif %}</div></div></li>{% endfor %}</ul>
+    <div class="card-body"><a class="btn btn-sm" href="{{ url_for('portal.events') }}">{{ icon('calendar-days', 15) }}<span>All events</span></a></div>
+    {% else %}{{ ui.empty_state('No upcoming events', icon_name='calendar-days') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

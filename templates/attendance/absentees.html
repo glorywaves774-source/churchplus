@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Absentees{% endblock %}
+{% block content %}
+{{ ui.page_header('Absentees', 'Active members not marked present at any main service in the last ' ~ weeks ~ ' weeks.') }}
+<section class="card">
+  <form class="filter-bar" method="get">
+    <select class="select" name="weeks" aria-label="Period">{% for w in [2, 4, 6, 8, 12] %}<option value="{{ w }}"{% if w == weeks %} selected{% endif %}>Last {{ w }} weeks</option>{% endfor %}</select>
+    <button class="btn" type="submit">Apply</button>
+  </form>
+  {% if rows %}
+  <div class="table-wrap"><table class="table">
+    <thead><tr><th>Member</th><th>Phone</th><th>Branch</th><th>Last seen</th></tr></thead>
+    <tbody>{% for r in rows %}<tr>
+      <td>{{ ui.person(r.member.display_name, r.member.membership_number, href=url_for('members.profile', public_id=r.member.public_id)) }}</td>
+      <td class="nowrap" translate="no">{% if r.member.phone %}<a href="tel:{{ r.member.phone }}">{{ r.member.phone }}</a>{% else %}—{% endif %}</td>
+      <td class="wrap" translate="no">{{ r.member.branch.name if r.member.branch else '—' }}</td>
+      <td class="nowrap">{{ r.last_seen.strftime('%d %b %Y') if r.last_seen else 'Never recorded' }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ ui.empty_state('No absentees to show', 'Either everyone attended, or fewer than two services in this period have a register.', 'user-check') }}{% endif %}
+</section>
+{% endblock %}

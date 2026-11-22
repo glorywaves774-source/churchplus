@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Accounting{% endblock %}
+{% block content %}
+{% call ui.page_header('Accounting', 'Double-entry books kept automatically from giving, vouchers and transfers.') %}
+  {% if can('accounting.create') %}{{ ui.button('Journal entry', 'plus', 'primary', href=url_for('accounting.new_journal')) }}{% endif %}
+{% endcall %}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Total assets', bs.total_assets|money, 'wallet') }}
+  {{ ui.stat_card('Liabilities', bs.total_liabilities|money, 'file-text', 'gold') }}
+  {{ ui.stat_card('Funds', bs.total_equity|money, 'landmark', 'success') }}
+  {{ ui.stat_card('Books balance', 'Yes' if tb.balanced and bs.balanced else 'Check', 'scale', 'success' if tb.balanced and bs.balanced else 'danger') }}
+</div>
+<div class="grid grid-main-side">
+  {% call ui.card('Recent journal entries', flush=True) %}
+    {% if recent %}
+    <div class="table-wrap"><table class="table"><thead><tr><th>Journal</th><th>Date</th><th>Description</th><th class="col-num">Amount</th></tr></thead>
+      <tbody>{% for e in recent %}<tr><td class="nowrap"><a href="{{ url_for('accounting.journal', public_id=e.public_id) }}">{{ e.number }}</a>{% if e.status.value == 'void' %} {{ ui.badge('Reversed', '') }}{% endif %}</td><td class="nowrap">{{ e.entry_date.strftime('%d %b %Y') }}</td><td class="wrap">{{ e.description }}</td><td class="num">{{ e.total|money(plain=True) }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No entries yet', icon_name='book-open') }}{% endif %}
+  {% endcall %}
+  {% call ui.card('Books and reports') %}
+    <div class="quick-actions">
+      <a class="quick-action" href="{{ url_for('accounting.income_statement') }}">{{ icon('trending-up', 20) }}Income statement</a>
+      <a class="quick-action" href="{{ url_for('accounting.balance_sheet') }}">{{ icon('scale', 20) }}Balance sheet</a>
+      <a class="quick-action" href="{{ url_for('accounting.cash_flow') }}">{{ icon('activity', 20) }}Cash flow</a>
+      <a class="quick-action" href="{{ url_for('accounting.trial_balance') }}">{{ icon('list-checks', 20) }}Trial balance</a>
+      <a class="quick-action" href="{{ url_for('accounting.account_ledger') }}">{{ icon('book', 20) }}Cashbook and ledgers</a>
+      <a class="quick-action" href="{{ url_for('accounting.journals') }}">{{ icon('book-open', 20) }}Journals</a>
+      <a class="quick-action" href="{{ url_for('accounting.accounts') }}">{{ icon('layers', 20) }}Chart of accounts</a>
+      <a class="quick-action" href="{{ url_for('accounting.reconciliations') }}">{{ icon('check-circle-2', 20) }}Bank reconciliation</a>
+      <a class="quick-action" href="{{ url_for('finance.budgets') }}">{{ icon('piggy-bank', 20) }}Budget vs actual</a>
+    </div>
+  {% endcall %}
+</div>
+{% endblock %}

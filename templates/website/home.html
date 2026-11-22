@@ -1,0 +1,36 @@
+{% extends "layouts/public.html" %}
+{% block content %}
+<section class="site-hero">
+  <h1 translate="no">{{ site.name }}</h1>
+  <p class="site-tagline">{{ g.site_cfg.headline or site.tagline or 'Welcome home.' }}</p>
+  <div class="cluster">
+    {% if g.site_cfg.visitor_form %}<a class="btn btn-primary" href="{{ url_for('website.site_visitor') }}">{{ icon('user-plus', 17) }}<span>I'm new here</span></a>{% endif %}
+    {% if g.site_cfg.prayer_form %}<a class="btn" href="{{ url_for('website.site_prayer') }}">{{ icon('heart-handshake', 17) }}<span>Prayer request</span></a>{% endif %}
+  </div>
+</section>
+{% for a in ann %}{{ ui.alert(a.body, 'info', a.title) }}{% endfor %}
+<div class="grid grid-main-side mt-4">
+  <div class="stack">
+    {% if g.site_cfg.about %}{% call ui.card('About us') %}<div class="prose pre-wrap">{{ g.site_cfg.about }}</div>{% endcall %}{% endif %}
+    {% if events %}{% call ui.card('Coming up', flush=True) %}
+      <ul class="feed">{% for e in events %}<li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('website.site_event', public_id=e.public_id) }}">{{ e.title }}</a><div class="feed-time">{{ e.starts_at.strftime('%a %d %b, %H:%M') }}{% if e.venue %} · {{ e.venue }}{% endif %}</div></div></li>{% endfor %}</ul>
+    {% endcall %}{% endif %}
+    {% if sermons %}{% call ui.card('Recent sermons', flush=True) %}
+      <ul class="feed">{% for s in sermons %}<li><span class="feed-icon">{{ icon('book-open', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('website.site_sermon', public_id=s.public_id) }}">{{ s.title }}</a><div class="feed-time" translate="no">{{ s.preacher }} · {{ s.preached_on.strftime('%d %b %Y') }}</div></div></li>{% endfor %}</ul>
+    {% endcall %}{% endif %}
+  </div>
+  <div class="stack">
+    {% if times %}{% call ui.card('Service times') %}
+      <dl class="kv">{% for t in times %}<dt>{{ days[t.weekday] }}</dt><dd>{{ t.name }}{% if t.start_time %}, {{ t.start_time.strftime('%H:%M') }}{% endif %}</dd>{% endfor %}</dl>
+    {% endcall %}{% endif %}
+    {% call ui.card('Find us') %}
+      <dl class="kv" translate="no">
+        {% if site.address_line1 or site.city %}<dt>Address</dt><dd>{{ [site.address_line1, site.address_line2, site.city, site.region]|select|join(', ') }}</dd>{% endif %}
+        {% if site.digital_address %}<dt>GPS</dt><dd>{{ site.digital_address }}</dd>{% endif %}
+        {% if site.phone %}<dt>Phone</dt><dd><a href="tel:{{ site.phone }}">{{ site.phone }}</a></dd>{% endif %}
+        {% if site.email %}<dt>Email</dt><dd><a href="mailto:{{ site.email }}">{{ site.email }}</a></dd>{% endif %}
+      </dl>
+    {% endcall %}
+  </div>
+</div>
+{% endblock %}

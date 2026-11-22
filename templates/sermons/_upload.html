@@ -1,0 +1,11 @@
+<form method="post" action="{{ url_for('sermons.media') }}" enctype="multipart/form-data" class="stack">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% if sermon %}<input type="hidden" name="sermon" value="{{ sermon.public_id }}">{% endif %}
+  {{ ui.input('title', 'Title', required=True) }}
+  <div class="field"><label class="label" for="f-file">File</label><input class="input" id="f-file" type="file" name="file" accept=".mp3,.m4a,.wav,.mp4,.webm,.pdf,.docx,.jpg,.jpeg,.png,.webp"><div class="help">Audio, video, PDF, Word or pictures, up to {{ config.MAX_CONTENT_LENGTH // 1048576 }} MB. Large videos: paste a YouTube link instead.</div></div>
+  {{ ui.input('url', 'Or a link', type='url', placeholder='https://…') }}
+  {{ ui.select('kind', [('link', 'Web page'), ('video', 'Video'), ('audio', 'Audio'), ('document', 'Document')], 'Link type', 'link') }}
+  {{ ui.input('category', 'Category', placeholder='e.g. Choir, Conference, Bulletin') }}
+  {{ ui.select('visibility', [('staff', 'Church staff only'), ('members', 'Members'), ('public', 'Everyone')], 'Who can see it', 'members') }}
+  <button class="btn btn-primary btn-sm" type="submit">{{ icon('upload', 15) }}<span>Add</span></button>
+</form>

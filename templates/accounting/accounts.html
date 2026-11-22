@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Chart of accounts{% endblock %}
+{% block content %}
+{{ ui.page_header('Chart of accounts', 'The categories every amount is recorded under.') }}
+<div class="grid grid-main-side">
+  <section class="card">
+    {% for t in types %}
+    <div class="card-header"><h3>{{ {'asset': 'Assets', 'liability': 'Liabilities', 'equity': 'Funds', 'income': 'Income', 'expense': 'Expenses'}[t.value] }}</h3></div>
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Code</th><th>Account</th><th>Kind</th><th class="col-num">Balance</th><th class="col-actions"></th></tr></thead>
+      <tbody>{% for a, bal in rows if a.type == t %}<tr>
+        <td class="nowrap">{{ a.code }}</td>
+        <td class="wrap"><a href="{{ url_for('accounting.account_ledger', account=a.public_id) }}">{{ a.name }}</a>{% if a.bank_name %}<div class="person-sub" translate="no">{{ a.bank_name }} {{ a.account_number or '' }}</div>{% endif %}{% if not a.is_active %} {{ ui.badge('Closed', '') }}{% endif %}</td>
+        <td class="nowrap">{{ a.subtype.value|replace('_', ' ')|capitalize }}{% if a.is_system %} <span class="badge plain">Required</span>{% endif %}</td>
+        <td class="num">{{ bal|money(plain=True) }}</td>
+        <td class="col-actions">{% if can('accounting.manage_settings') and not (a.is_system and a.is_active) %}
+          <form method="post" action="{{ url_for('accounting.update_account', public_id=a.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="toggle" value="1"><button class="btn btn-sm btn-ghost" type="submit">{{ 'Close' if a.is_active else 'Reopen' }}</button></form>
+        {% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% endfor %}
+  </section>
+  {% if can('accounting.manage_settings') %}
+  {% call ui.card('Add an account', 'e.g. a second bank account or a new expense category.') %}
+    <form method="post" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('code', 'Code', required=True, placeholder='e.g. 1011') }}
+      {{ ui.input('name', 'Name', required=True, placeholder='e.g. GCB Building Fund account') }}
+      <div class="field"><label class="label" for="f-type">Type</label><select class="select" id="f-type" name="type">{% for t in types %}<option value="{{ t.value }}">{{ t.value|capitalize }}</option>{% endfor %}</select></div>
+      <div class="field"><label class="label" for="f-subtype">Kind</label><select class="select" id="f-subtype" name="subtype">{% for v in ['general', 'bank', 'cash', 'mobile_money', 'receivable', 'payable', 'fund'] %}<option value="{{ v }}">{{ v|replace('_', ' ')|capitalize }}</option>{% endfor %}</select><span class="help">Bank, cash and mobile money accounts can receive and pay money.</span></div>
+      {{ ui.input('bank_name', 'Bank or provider') }}
+      {{ ui.input('account_number', 'Account number') }}
+      <button class="btn btn-primary" type="submit">{{ icon('plus', 17) }}<span>Add account</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+{% call ui.page_header(greeting ~ ', ' ~ g.user.first_name, g.tenant.name ~ (' · ' ~ g.tenant.tagline if g.tenant.tagline else '')) %}
+  {% if can('branches.create') %}{{ ui.button('Add branch', 'building-2', href=url_for('tenants.branch_create')) }}{% endif %}
+{% endcall %}
+
+{% if trial_days is not none %}
+  {{ ui.alert('Your free trial of the ' ~ sub.plan.name ~ ' plan has ' ~ trial_days ~ ' day' ~ ('' if trial_days == 1 else 's') ~ ' left.', 'info', 'Free trial') }}
+  <div class="mb-4"></div>
+{% endif %}
+
+<div class="grid grid-stats mb-4">
+  {% if member_stats %}
+  {{ ui.stat_card('Members', '{:,}'.format(member_stats.total), 'users', '', note=('{:,}'.format(member_stats.active) ~ ' active'), href=url_for('members.index')) }}
+  {{ ui.stat_card('New members', member_stats.new_this_month, 'user-plus', 'success', note='this month') }}
+  {% endif %}
+  {{ ui.stat_card('Active branches', branches_active, 'building-2', '', note=branch_limit.label if branch_limit.limit else None, href=url_for('tenants.branches') if can('branches.view') else None) }}
+  {{ ui.stat_card('Team accounts', users, 'user-cog', 'info') }}
+  {{ ui.stat_card('Plan', sub.plan.name if sub else 'None', 'credit-card', 'gold', note=(sub.status.value|replace('_', ' ')|capitalize) if sub else None) }}
+  {% if member_churches is not none %}
+  {{ ui.stat_card('Member churches', member_churches|length, 'church', 'success', href=url_for('tenants.member_churches')) }}
+  {% endif %}
+</div>
+
+<div class="grid grid-main-side mb-4">
+  {% call ui.card('Recent activity', 'Latest actions in your church workspace', flush=True) %}
+    {% if activity %}
+    <ul class="feed">
+      {% for a in activity %}
+      <li>
+        <span class="feed-icon">{{ icon(a.icon, 16) }}</span>
+        <div class="min-w-0"><div class="feed-text">{{ a.text }}</div>
+          <div class="feed-time"><time datetime="{{ a.at.isoformat() }}">{{ a.at.strftime('%d %b %Y, %H:%M') }}</time></div></div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}{{ ui.empty_state('No activity yet', 'Changes made in your workspace will appear here.', 'activity') }}{% endif %}
+  {% endcall %}
+
+  <div class="stack">
+    {% set done = checklist|selectattr('done')|list|length %}
+    {% call ui.card('Getting started', done ~ ' of ' ~ checklist|length ~ ' done') %}
+      <progress class="progress mb-4" max="{{ checklist|length }}" value="{{ done }}" aria-label="Setup progress"></progress>
+      <ul class="checklist">
+        {% for c in checklist %}
+        <li class="{{ 'done' if c.done }}">
+          <span class="tick">{{ icon('check', 14) }}</span><span class="item-label">{{ c.label }}</span>
+          {% if c.url and not c.done %}<a href="{{ c.url }}">Start</a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+    {% endcall %}
+    {% if birthdays is not none %}
+    {% call ui.card('Upcoming birthdays', 'Next two weeks', flush=True) %}
+      {% if birthdays %}
+      <ul class="feed">
+        {% for m in birthdays %}
+        <li><span class="feed-icon">{{ icon('cake', 16) }}</span>
+          <div class="min-w-0"><a class="feed-text" href="{{ url_for('members.profile', public_id=m.public_id) }}" translate="no">{{ m.display_name }}</a>
+          <div class="feed-time">{{ m.date_of_birth.strftime('%d %B') }}</div></div></li>
+        {% endfor %}
+      </ul>
+      {% else %}{{ ui.empty_state('No birthdays in the next two weeks', icon_name='cake') }}{% endif %}
+    {% endcall %}
+    {% endif %}
+    {% if upcoming_events is not none %}
+    {% call ui.card('Coming up', 'Published events', flush=True) %}
+      {% if upcoming_events %}
+      <ul class="feed">
+        {% for e in upcoming_events %}
+        <li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span>
+          <div class="min-w-0"><a class="feed-text" href="{{ url_for('events.detail', public_id=e.public_id) }}">{{ e.title }}</a>
+          <div class="feed-time">{{ e.starts_at.strftime('%a %d %b, %H:%M') }}{% if e.venue %} · <span translate="no">{{ e.venue }}</span>{% endif %}</div></div></li>
+        {% endfor %}
+      </ul>
+      {% else %}{{ ui.empty_state('No upcoming events', icon_name='calendar-days') }}{% endif %}
+    {% endcall %}
+    {% endif %}
+    {% if quick %}
+    {% call ui.card('Quick actions') %}
+      <div class="quick-actions">
+        {% for q in quick %}<a class="quick-action" href="{{ q.url }}">{{ icon(q.icon, 20) }}{{ q.label }}</a>{% endfor %}
+      </div>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

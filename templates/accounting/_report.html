@@ -1,0 +1,31 @@
+{# Shared header for financial reports: period or date, branch consolidation, print and CSV. #}
+{% macro filters(endpoint, mode='period', start=None, end=None, as_of=None, csv=True, extra=None) -%}
+<form class="filter-bar no-print" method="get" action="{{ url_for(endpoint) }}">
+  {% if extra %}{{ extra }}{% endif %}
+  {% if mode == 'period' %}
+    <input class="input date-input" type="date" name="from" value="{{ start.isoformat() }}" aria-label="From">
+    <input class="input date-input" type="date" name="to" value="{{ end.isoformat() }}" aria-label="To">
+  {% else %}
+    <input class="input date-input" type="date" name="as_of" value="{{ as_of.isoformat() }}" aria-label="As at">
+  {% endif %}
+  {% if can_consolidate and branches|length > 1 %}
+    <select class="select" name="branch" aria-label="Branch"><option value="">All branches (consolidated)</option>{% for b in branches %}<option value="{{ b.public_id }}"{% if b.public_id == branch_pid %} selected{% endif %}>{{ b.name }}</option>{% endfor %}</select>
+  {% endif %}
+  <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Show</span></button>
+  <button class="btn btn-ghost" type="button" data-print>{{ icon('printer', 16) }}<span>Print</span></button>
+  {% if csv %}<button class="btn btn-ghost" type="submit" name="format" value="csv">{{ icon('download', 16) }}<span>CSV</span></button>{% endif %}
+</form>
+{%- endmacro %}
+
+{% macro report_title(title, subtitle) -%}
+<div class="report-title"><div translate="no" class="report-church">{{ g.tenant.name }}</div><h2>{{ title }}</h2><p class="help mb-0">{{ subtitle }} · amounts in {{ g.tenant.currency }}</p></div>
+{%- endmacro %}
+
+{% macro section(title, rows, total_label, total) -%}
+<tbody>
+  <tr class="section-row"><th colspan="2">{{ title }}</th></tr>
+  {% for r in rows %}<tr><td class="wrap"><span class="code">{{ r.account.code }}</span> {{ r.account.name }}</td><td class="num">{{ r.amount|money(plain=True) }}</td></tr>{% endfor %}
+  {% if not rows %}<tr><td class="help">None</td><td></td></tr>{% endif %}
+  <tr class="total-row"><td>{{ total_label }}</td><td class="num">{{ total|money(plain=True) }}</td></tr>
+</tbody>
+{%- endmacro %}

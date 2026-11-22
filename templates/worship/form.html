@@ -1,0 +1,72 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit service' if service else 'Schedule service' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit service' if service else 'Schedule a service') }}
+<form method="post" novalidate class="stack">
+  {{ form.csrf_token }}
+  {% call ui.card('Details') %}
+  <div class="form-grid">
+    {{ ui.field(form.service_type) }}
+    {{ ui.field(form.kind) }}
+    {{ ui.field(form.title, span=True) }}
+    {{ ui.field(form.service_date) }}
+    {{ ui.field(form.status) }}
+    {{ ui.field(form.start_time) }}
+    {{ ui.field(form.end_time) }}
+    {{ ui.field(form.branch) }}
+    {{ ui.field(form.department) }}
+    {{ ui.field(form.venue) }}
+    {{ ui.field(form.theme) }}
+    {{ ui.field(form.preacher) }}
+    {{ ui.field(form.worship_leader) }}
+    {{ ui.field(form.sermon_title) }}
+    {{ ui.field(form.scripture_readings) }}
+    {{ ui.field(form.notes, span=True) }}
+  </div>
+  {% endcall %}
+
+  {% call ui.card('Order of service', 'Leave a row empty to remove it.') %}
+  <div class="table-wrap">
+    <table class="table rows-table">
+      <thead><tr><th>Time</th><th>Activity</th><th>Led by</th></tr></thead>
+      <tbody>
+        {% for it in items %}
+        <tr><td><input class="input" type="time" name="item_time" value="{{ it.start_time.strftime('%H:%M') if it.start_time else '' }}" aria-label="Time"></td>
+            <td><input class="input" name="item_activity" value="{{ it.activity }}" aria-label="Activity"></td>
+            <td><input class="input" name="item_led_by" value="{{ it.led_by or '' }}" aria-label="Led by"></td></tr>
+        {% endfor %}
+        {% for i in range(5 if not items else 3) %}
+        <tr><td><input class="input" type="time" name="item_time" aria-label="Time"></td>
+            <td><input class="input" name="item_activity" placeholder="{{ ['Call to worship', 'Praise and worship', 'Scripture reading', 'Sermon', 'Offering'][i] if not items else '' }}" aria-label="Activity"></td>
+            <td><input class="input" name="item_led_by" aria-label="Led by"></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endcall %}
+
+  {% call ui.card('Who is serving', 'Ushers, readers, protocol, media… Enter a name or a membership number.') %}
+  <div class="table-wrap">
+    <table class="table rows-table">
+      <thead><tr><th>Duty</th><th>Person</th></tr></thead>
+      <tbody>
+        {% for d in duties %}
+        <tr><td><input class="input" name="duty_role" value="{{ d.role }}" aria-label="Duty"></td>
+            <td><input class="input" name="duty_name" value="{{ d.member.membership_number if d.member else d.name }}" aria-label="Person"></td></tr>
+        {% endfor %}
+        {% for i in range(4 if not duties else 2) %}
+        <tr><td><input class="input" name="duty_role" placeholder="{{ ['Usher', 'Usher', 'Scripture reader', 'Media'][i] if not duties else '' }}" aria-label="Duty"></td>
+            <td><input class="input" name="duty_name" aria-label="Person"></td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endcall %}
+
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('worship.detail', public_id=service.public_id) if service else url_for('worship.index') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>{{ 'Save service' if service else 'Schedule service' }}</span></button>
+  </div>
+</form>
+{% endblock %}

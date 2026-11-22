@@ -1,0 +1,168 @@
+{#
+  Signed-in application shell.
+  Pages set:  {% block page_title %}, optional `breadcrumbs` list of (label, url|None),
+              and fill {% block content %}.
+  Identity comes from `shell_user` / `shell_church` (provided once sign-in exists).
+#}
+{% extends "layouts/base.html" %}
+{% set sections = nav_sections(can) %}
+{% set tabs = tab_items(can) %}
+{% block body_class %}app-page{% if tabs %} has-tabbar{% endif %}{% endblock %}
+{% block body %}
+<a class="sr-only" href="#main">Skip to content</a>
+<div class="app">
+  <aside class="sidebar" id="sidebar" aria-label="Main menu">
+    <div class="sidebar-head">
+      <a class="brand" href="{{ url_for('core.index') }}">{% include "layouts/_brand.html" %}</a>
+      <button type="button" class="btn btn-icon sidebar-close" data-drawer-close aria-label="Close menu">{{ icon('x', 20) }}</button>
+    </div>
+
+    {% if shell_church %}
+    <div class="church-chip">
+      <span class="avatar" translate="no">{{ shell_church.name|initials }}</span>
+      <div class="church-chip-text">
+        <div class="church-chip-name" translate="no">{{ shell_church.name }}</div>
+        <div class="church-chip-sub">{{ shell_church.subtitle }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    {% set item_count = sections|map(attribute='items')|map('length')|sum %}
+    {% if item_count > 7 %}
+    <div class="nav-filter">
+      {{ icon('search', 16) }}
+      <label for="nav-filter" class="sr-only">Find a page</label>
+      <input id="nav-filter" type="search" placeholder="Find a page" autocomplete="off">
+    </div>
+    {% endif %}
+
+    <nav class="sidebar-nav">
+      {% for section in sections %}
+      <div class="nav-section">
+        <div class="nav-section-title">{{ section.title }}</div>
+        {% for item in section["items"] %}
+        <a class="nav-link" href="{{ item.url }}" title="{{ item.label }}"{% if item.active %} aria-current="page"{% endif %}>
+          {{ icon(item.icon, 19) }}<span class="nav-label">{{ item.label }}</span>
+        </a>
+        {% endfor %}
+      </div>
+      {% endfor %}
+      <p class="nav-empty" id="nav-empty" hidden>No matching pages.</p>
+    </nav>
+
+    <div class="sidebar-foot">
+      <button type="button" class="sidebar-collapse" data-sidebar-collapse aria-expanded="true" aria-controls="sidebar">
+        <span class="icon-close">{{ icon('panel-left-close', 19) }}</span>
+        <span class="icon-open">{{ icon('panel-left-open', 19) }}</span>
+        <span class="collapse-label">Collapse menu</span>
+      </button>
+    </div>
+  </aside>
+  <div class="drawer-backdrop" data-drawer-close aria-hidden="true"></div>
+
+  <div class="app-body">
+    <header class="topbar">
+      <button type="button" class="btn btn-ghost btn-icon app-back" data-app-back aria-label="Back">{{ icon('chevron-left', 22) }}</button>
+      <button type="button" class="btn btn-ghost btn-icon menu-btn" data-drawer-open aria-controls="sidebar" aria-expanded="false" aria-label="Open menu">{{ icon('menu', 22) }}</button>
+      <div class="topbar-title">
+        {% if breadcrumbs %}
+        <ol class="breadcrumb" aria-label="Breadcrumb">
+          {% for label, url in breadcrumbs %}
+          <li>{% if url %}<a href="{{ url }}">{{ label }}</a>{% else %}<span aria-current="page">{{ label }}</span>{% endif %}</li>
+          {% endfor %}
+        </ol>
+        {% endif %}
+        <h1>{% block page_title %}{{ self.title() }}{% endblock %}</h1>
+      </div>
+
+      <div class="topbar-tools">
+        <form class="global-search" role="search" action="{{ url_for('core.search') }}" method="get">
+          {{ icon('search', 17) }}
+          <label for="global-search-input" class="sr-only">Search</label>
+          <input id="global-search-input" type="search" name="q" placeholder="Search" value="{{ request.args.get('q', '') if request.endpoint == 'core.search' else '' }}" autocomplete="off">
+          <kbd aria-hidden="true">⌘K</kbd>
+        </form>
+
+        {% include "layouts/_theme_toggle.html" %}
+
+        <div class="dropdown">
+          <button type="button" class="btn btn-icon" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" aria-label="Notifications">
+            {{ icon('bell', 19) }}{% if notifications %}<span class="badge-dot" aria-hidden="true"></span>{% endif %}
+          </button>
+          <div class="dropdown-menu notif-menu" role="menu">
+            <div class="notif-head">Notifications {% if notifications %}<span class="badge badge-accent plain">{{ notifications|length }}</span>{% endif %}</div>
+            <div class="notif-list">
+              {% for n in notifications %}
+              <a class="dropdown-item" role="menuitem" href="{{ n.url or '#' }}">
+                <span class="feed-icon">{{ icon(n.icon or 'bell', 16) }}</span>
+                <span><span class="feed-text">{{ n.text }}</span><br><span class="feed-time">{{ n.when }}</span></span>
+              </a>
+              {% else %}
+              <div class="notif-empty">{{ icon('bell-ring', 26) }}<strong>You're all caught up</strong>New notifications will appear here.</div>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+
+        {% if shell_user %}
+        <div class="dropdown">
+          <button type="button" class="btn btn-ghost btn-account" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" aria-label="Account menu">
+            <span class="avatar avatar-sm" translate="no">{{ shell_user.name|initials }}</span>
+            <span class="hide-phone" translate="no">{{ shell_user.name.split()[0] }}</span>
+            {{ icon('chevron-down', 16, 'hide-phone') }}
+          </button>
+          <div class="dropdown-menu" role="menu">
+            <div class="dropdown-header">
+              <div class="person-name" translate="no">{{ shell_user.name }}</div>
+              <div class="person-sub" translate="no">{{ shell_user.email }}</div>
+              {% if shell_user.role %}<span class="badge badge-gold plain mt-1">{{ shell_user.role }}</span>{% endif %}
+            </div>
+            <div class="dropdown-divider"></div>
+            {% for label, url, ic in shell_user.links|default([]) %}
+            <a class="dropdown-item" role="menuitem" href="{{ url }}">{{ icon(ic, 17) }} {{ label }}</a>
+            {% endfor %}
+            <button type="button" class="dropdown-item" role="menuitem" data-install-app hidden>{{ icon('smartphone', 17) }} Install app</button>
+            {% if shell_user.logout_url %}
+            <div class="dropdown-divider"></div>
+            <form method="post" action="{{ shell_user.logout_url }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="dropdown-item danger" role="menuitem">{{ icon('log-out', 17) }} Sign out</button>
+            </form>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </header>
+
+    {% include "layouts/_install_help.html" %}
+    <main class="app-main" id="main" tabindex="-1">
+      {% if billing_notice and request.endpoint and not request.endpoint.startswith('billing.') %}
+      <div class="alert alert-{{ billing_notice.kind }} billing-banner no-print" role="status">{{ icon('credit-card', 18) }}<span class="grow">{{ billing_notice.text }}</span><a class="btn btn-sm" href="{{ billing_notice.url }}">See subscription</a></div>
+      {% endif %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% if tabs %}
+  <nav class="tabbar" aria-label="Main destinations">
+    {% for t in tabs %}
+    <a class="tab-link" href="{{ t.url }}"{% if t.active %} aria-current="page"{% endif %}>{{ icon(t.icon, 22) }}<span>{{ t.label }}</span></a>
+    {% endfor %}
+    <button type="button" class="tab-link" data-drawer-open aria-controls="sidebar" aria-expanded="false">{{ icon('menu', 22) }}<span>Menu</span></button>
+  </nav>
+  {% endif %}
+</div>
+
+<dialog class="modal modal-sm" id="confirm-dialog" aria-labelledby="confirm-title">
+  <div class="modal-body modal-body-top">
+    <span class="confirm-icon">{{ icon('alert-triangle', 22) }}</span>
+    <h3 id="confirm-title">Are you sure?</h3>
+    <p id="confirm-message" class="text-muted mb-0"></p>
+  </div>
+  <div class="modal-foot">
+    <button type="button" class="btn" data-modal-close>Cancel</button>
+    <button type="button" class="btn btn-danger" id="confirm-ok">Confirm</button>
+  </div>
+</dialog>
+{% endblock %}

@@ -1,0 +1,38 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit event' if e else 'New event' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit ' ~ e.title if e else 'New event or programme') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('Details') %}
+  <div class="form-grid">
+    {{ ui.input('title', 'Title', form.get('title', e.title if e else ''), required=True, span=True, placeholder='e.g. Annual Harvest and Thanksgiving') }}
+    <div class="field"><label class="label" for="f-category">Category</label><select class="select" id="f-category" name="category">{% for c in categories %}<option{% if c == form.get('category', e.category if e else '') %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label" for="f-status">Status</label><select class="select" id="f-status" name="status">{% for s in statuses %}<option value="{{ s.value }}"{% if s.value == form.get('status', e.status.value if e else 'draft') %} selected{% endif %}>{{ s.value|capitalize }}</option>{% endfor %}</select></div>
+    {{ ui.input('start_date', 'Starts on', form.get('start_date', e.starts_at.date().isoformat() if e else ''), 'date', required=True) }}
+    {{ ui.input('start_time', 'Start time', form.get('start_time', e.starts_at.strftime('%H:%M') if e else ''), 'time') }}
+    {{ ui.input('end_date', 'Ends on', form.get('end_date', e.ends_at.date().isoformat() if e and e.ends_at else ''), 'date') }}
+    {{ ui.input('end_time', 'End time', form.get('end_time', e.ends_at.strftime('%H:%M') if e and e.ends_at else ''), 'time') }}
+    {{ ui.input('venue', 'Venue', form.get('venue', e.venue or '' if e else '')) }}
+    {{ ui.input('livestream_url', 'Livestream link', form.get('livestream_url', e.livestream_url or '' if e else ''), 'url', placeholder='https://youtube.com/…') }}
+    <div class="field"><label class="label" for="f-branch">Branch</label><select class="select" id="f-branch" name="branch"><option value="">Whole church</option>{% for b in branches %}<option value="{{ b.public_id }}"{% if e and e.branch_id == b.id %} selected{% endif %}>{{ b.name }}</option>{% endfor %}</select></div>
+    <div class="field"><label class="label" for="f-department">Organised by</label><select class="select" id="f-department" name="department"><option value="">—</option>{% for d in departments %}<option value="{{ d.public_id }}"{% if e and e.department_id == d.id %} selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
+    <div class="field span-2"><label class="label" for="f-description">Description</label><textarea class="textarea" id="f-description" name="description">{{ form.get('description', e.description or '' if e else '') }}</textarea></div>
+  </div>
+  {% endcall %}
+  {% call ui.card('Registration and budget') %}
+  <div class="form-grid">
+    <label class="check span-2"><input type="checkbox" name="requires_registration" value="y"{% if (form.get('requires_registration') == 'y') or (not form and e and e.requires_registration) %} checked{% endif %}> People must register</label>
+    {{ ui.input('capacity', 'Places available', form.get('capacity', e.capacity or '' if e else ''), 'number', help='Leave empty for no limit. Extra registrations go on a waiting list.', attrs={'min': 1, 'inputmode': 'numeric'}) }}
+    {{ ui.input('closes_date', 'Registration closes', form.get('closes_date', e.registration_closes.date().isoformat() if e and e.registration_closes else ''), 'date') }}
+    {{ ui.input('budget', 'Budget (' ~ g.tenant.currency ~ ')', form.get('budget', e.budget_amount or '' if e else ''), attrs={'inputmode': 'decimal'}) }}
+    <label class="check"><input type="checkbox" name="is_public" value="y"{% if (form.get('is_public') == 'y') or (not form and e and e.is_public) %} checked{% endif %}> Show on the church website</label>
+  </div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('events.detail', public_id=e.public_id) if e else url_for('events.index') }}">Cancel</a>
+    <button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button>
+  </div>
+</form>
+{% endblock %}

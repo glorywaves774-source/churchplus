@@ -1,0 +1,12 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Sermons{% endblock %}
+{% block content %}
+{{ ui.page_header('Sermons') }}
+<section class="card">
+  {{ ui.filter_bar(url_for('portal.sermons'), q, 'Search sermons, scripture, series') }}
+  {% if page.items %}<ul class="feed">{% for s in page.items %}<li><span class="feed-icon">{{ icon('book-open', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('portal.sermon', public_id=s.public_id) }}">{{ s.title }}</a><div class="feed-time" translate="no">{{ s.preacher }} · {{ s.preached_on.strftime('%d %b %Y') }}{% if s.scripture %} · {{ s.scripture }}{% endif %}{% if s.series %} · {{ s.series }}{% endif %}</div></div>{% if s.video_url %}{{ icon('video', 16, label='Video') }}{% endif %}</li>{% endfor %}</ul>
+  {{ ui.pagination(page, 'portal.sermons', {'q': q} if q else {}) }}
+  {% else %}{{ ui.empty_state('No sermons found', icon_name='book-open') }}{% endif %}
+</section>
+{% endblock %}

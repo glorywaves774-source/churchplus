@@ -1,0 +1,25 @@
+# ChurchPlus runtime dependencies (tested on Python 3.13)
+Flask>=3.1,<3.2
+Flask-SQLAlchemy>=3.1,<3.2
+SQLAlchemy>=2.0.36,<2.2
+Flask-Migrate>=4.1,<5
+alembic>=1.14,<2
+Flask-Login>=0.6.3,<0.7
+Flask-WTF>=1.2,<1.4
+WTForms>=3.1,<3.4
+email-validator>=2.1,<3
+Flask-Limiter>=3.8,<5
+python-dotenv>=1.0,<2
+psycopg[binary]>=3.2,<4
+gunicorn>=23,<28
+qrcode>=7.4,<9
+openpyxl>=3.1,<4
+
+# Cloud object storage (STORAGE_BACKEND=s3: AWS S3, Cloudflare R2, Backblaze B2...)
+boto3>=1.35,<2
+
+# Time zones on any host, report PDFs, encryption of stored secrets, shared rate limits
+tzdata>=2024.1
+reportlab>=4.2,<5
+cryptography>=43
+redis>=5,<7

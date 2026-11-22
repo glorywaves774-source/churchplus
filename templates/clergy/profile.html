@@ -1,0 +1,88 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ staff.display_name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(staff.display_name, staff.position ~ ' · ' ~ staff.staff_number) %}
+  {% if staff.member %}{{ ui.button('Member record', 'user-round', href=url_for('members.profile', public_id=staff.member.public_id)) }}{% endif %}
+  {% if can('clergy.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('clergy.edit', public_id=staff.public_id)) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Category', staff.category.value|capitalize, 'briefcase') }}
+  {{ ui.stat_card('Status', staff.status.value|replace('_', ' ')|capitalize, 'activity', 'success' if staff.status.value == 'active' else 'gold') }}
+  {{ ui.stat_card('Annual leave left', staff.annual_leave_days - taken, 'calendar-days', 'info', note=taken ~ ' of ' ~ staff.annual_leave_days ~ ' days used this year') }}
+</div>
+
+<div class="grid grid-2 mb-4">
+  {% call ui.card('Details') %}
+    <dl class="kv">
+      <dt>Employment</dt><dd>{{ staff.employment_type.value|replace('_', ' ')|capitalize }}</dd>
+      <dt>Department</dt><dd>{{ staff.department.name if staff.department else '—' }}</dd>
+      <dt>Branch</dt><dd translate="no">{{ staff.branch.name if staff.branch else 'Whole church' }}</dd>
+      <dt>Started</dt><dd>{{ staff.start_date.strftime('%d %b %Y') if staff.start_date else '—' }}{% if staff.end_date %} – {{ staff.end_date.strftime('%d %b %Y') }}{% endif %}</dd>
+      {% if staff.ordination_date %}<dt>Ordained</dt><dd>{{ staff.ordination_date.strftime('%d %b %Y') }}</dd>{% endif %}
+      <dt>Ghana Card</dt><dd translate="no">{{ staff.ghana_card_number or '—' }}</dd>
+      <dt>SSNIT</dt><dd translate="no">{{ staff.ssnit_number or '—' }}</dd>
+    </dl>
+  {% endcall %}
+  {% call ui.card('Contact') %}
+    <dl class="kv" translate="no">
+      <dt>Phone</dt><dd>{% if staff.phone %}<a href="tel:{{ staff.phone }}">{{ staff.phone }}</a>{% else %}—{% endif %}</dd>
+      <dt>Email</dt><dd>{{ staff.email or '—' }}</dd>
+      <dt>Address</dt><dd>{{ staff.address or '—' }}</dd>
+      <dt>Emergency</dt><dd>{{ staff.emergency_name or '—' }}{% if staff.emergency_phone %}<br>{{ staff.emergency_phone }}{% endif %}</dd>
+    </dl>
+    {% if staff.notes %}<p class="help mt-4 mb-0">{{ staff.notes }}</p>{% endif %}
+  {% endcall %}
+</div>
+
+<div class="grid grid-main-side mb-4" id="records">
+  {% call ui.card('Employment history and documents') %}
+    {% if staff.records %}
+    <ul class="timeline">
+      {% for r in staff.records %}
+      <li><strong>{{ r.title }}</strong> · {{ r.kind.value|capitalize }} · {{ r.record_date.strftime('%d %b %Y') }}{% if r.rating %} · {{ r.rating }}/5{% endif %}
+        {% if r.details %}<br><span class="help">{{ r.details }}</span>{% endif %}
+        {% if r.file_key %}<br><a href="{{ url_for('clergy.record_file', public_id=staff.public_id, rec_id=r.public_id) }}">{{ icon('paperclip', 14) }} {{ r.file_name }}</a>{% endif %}</li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="text-muted mb-0">Record contracts, promotions, transfers, appraisals and training here.</p>{% endif %}
+  {% endcall %}
+  {% if can('clergy.edit') %}
+  {% call ui.card('Add to history') %}
+    <form method="post" action="{{ url_for('clergy.add_record', public_id=staff.public_id) }}" enctype="multipart/form-data" class="stack">
+      {{ record_form.csrf_token }}{{ ui.field(record_form.kind) }}{{ ui.field(record_form.record_date) }}{{ ui.field(record_form.title) }}{{ ui.field(record_form.details) }}{{ ui.field(record_form.rating) }}{{ ui.field(record_form.file) }}
+      <button class="btn" type="submit">{{ icon('plus', 17) }}<span>Add</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+
+<div class="grid grid-main-side" id="leave">
+  {% call ui.card('Leave', flush=True) %}
+    {% if staff.leave %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Type</th><th>Dates</th><th class="col-num">Days</th><th>Status</th><th></th></tr></thead>
+      <tbody>{% for l in staff.leave %}<tr>
+        <td>{{ l.leave_type.value|capitalize }}</td>
+        <td class="nowrap">{{ l.start_date.strftime('%d %b') }} – {{ l.end_date.strftime('%d %b %Y') }}</td>
+        <td class="num">{{ l.days }}</td>
+        <td>{{ ui.badge(l.status.value) }}</td>
+        <td class="col-actions">{% if l.status.value == 'pending' and can('clergy.approve') %}<div class="cluster">
+          <form method="post" action="{{ url_for('clergy.decide_leave', leave_id=l.public_id, decision='approve') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ url_for('clergy.profile', public_id=staff.public_id) }}"><button class="btn btn-sm" type="submit">Approve</button></form>
+          <form method="post" action="{{ url_for('clergy.decide_leave', leave_id=l.public_id, decision='reject') }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="next" value="{{ url_for('clergy.profile', public_id=staff.public_id) }}"><button class="btn btn-sm btn-ghost" type="submit">Reject</button></form>
+        </div>{% endif %}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No leave recorded', icon_name='calendar-days') }}{% endif %}
+  {% endcall %}
+  {% if can('clergy.edit') %}
+  {% call ui.card('Request leave') %}
+    <form method="post" action="{{ url_for('clergy.request_leave', public_id=staff.public_id) }}" class="stack">
+      {{ leave_form.csrf_token }}{{ ui.field(leave_form.leave_type) }}{{ ui.field(leave_form.start_date) }}{{ ui.field(leave_form.end_date) }}{{ ui.field(leave_form.reason) }}
+      <button class="btn" type="submit">{{ icon('send', 17) }}<span>Submit for approval</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

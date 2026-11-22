@@ -1,0 +1,26 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Bank reconciliation{% endblock %}
+{% block content %}
+{{ ui.page_header('Bank reconciliation', 'Match your books to the bank or MoMo statement, line by line.') }}
+<div class="grid grid-main-side">
+  {% call ui.card(flush=True) %}
+    {% if rows %}
+    <div class="table-wrap"><table class="table"><thead><tr><th>Account</th><th>Statement date</th><th class="col-num">Statement balance</th><th>Status</th></tr></thead>
+      <tbody>{% for r in rows %}<tr><td class="wrap"><a href="{{ url_for('accounting.reconciliation', public_id=r.public_id) }}">{{ r.account.name }}</a></td><td class="nowrap">{{ r.statement_date.strftime('%d %b %Y') }}</td><td class="num">{{ r.statement_balance|money(plain=True) }}</td><td>{{ ui.badge(r.status.value|replace('_', ' '), 'success' if r.status.value == 'completed' else 'warning') }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No reconciliations yet', icon_name='check-circle-2') }}{% endif %}
+  {% endcall %}
+  {% if can('accounting.create') %}
+  {% call ui.card('Start a reconciliation') %}
+    <form method="post" class="stack" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="field"><label class="label" for="f-account">Account</label><select class="select" id="f-account" name="account">{% for a in accounts %}<option value="{{ a.public_id }}">{{ a.name }}</option>{% endfor %}</select></div>
+      {{ ui.input('statement_date', 'Statement date', today.isoformat(), 'date', required=True) }}
+      {{ ui.input('statement_balance', 'Closing balance on the statement (' ~ g.tenant.currency ~ ')', required=True, attrs={'inputmode': 'decimal'}) }}
+      <button class="btn btn-primary" type="submit">{{ icon('play', 17) }}<span>Start</span></button>
+    </form>
+  {% endcall %}
+  {% endif %}
+</div>
+{% endblock %}

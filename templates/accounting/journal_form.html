@@ -1,0 +1,37 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}New journal entry{% endblock %}
+{% block content %}
+{{ ui.page_header('New journal entry', 'For opening balances, corrections and adjustments. Total debits must equal total credits.') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card() %}
+  <div class="form-grid">
+    {{ ui.input('entry_date', 'Date', form.get('entry_date', today.isoformat()), 'date', required=True) }}
+    {{ ui.input('reference', 'Reference', form.get('reference', '')) }}
+    {{ ui.input('description', 'Description', form.get('description', ''), required=True, span=True, placeholder='e.g. Opening balances at 1 January') }}
+    <label class="check span-2"><input type="checkbox" name="opening" value="1"{% if form.get('opening') %} checked{% endif %}> These are opening balances</label>
+  </div>
+  {% endcall %}
+  {% call ui.card('Lines', flush=True) %}
+  <div class="table-wrap"><table class="table rows-table">
+    <thead><tr><th>Account</th><th>Debit</th><th>Credit</th><th>Memo</th></tr></thead>
+    <tbody>
+      {% for i in range([rows|length + 2, 6]|max) %}
+      {% set r = rows[i] if i < rows|length else ('', '', '', '') %}
+      <tr>
+        <td><select class="select" name="account" aria-label="Account"><option value="">—</option>{% for a in accounts %}<option value="{{ a.public_id }}"{% if a.public_id == r[0] %} selected{% endif %}>{{ a.code }} · {{ a.name }}</option>{% endfor %}</select></td>
+        <td><input class="input num-input" name="debit" inputmode="decimal" value="{{ r[1] }}" placeholder="0.00" aria-label="Debit"></td>
+        <td><input class="input num-input" name="credit" inputmode="decimal" value="{{ r[2] }}" placeholder="0.00" aria-label="Credit"></td>
+        <td><input class="input" name="memo" value="{{ r[3] }}" aria-label="Memo"></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% endcall %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('accounting.journals') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>Post entry</span></button>
+  </div>
+</form>
+{% endblock %}

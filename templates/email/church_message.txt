@@ -1,0 +1,5 @@
+{{ text }}
+
+—
+{{ church.name }}{% if church.phone %} · {{ church.phone }}{% endif %}
+You receive this because you are on the member list of {{ church.name }}. To stop these emails, ask the church office to update your contact preferences.

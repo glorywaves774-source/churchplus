@@ -1,0 +1,30 @@
+{% extends "layouts/auth.html" %}
+{% block title %}Choose a church{% endblock %}
+{% block card %}
+<h1>Choose a church</h1>
+{% if accounts %}
+<p class="text-muted">You have access to more than one church workspace.</p>
+<div class="church-list">
+  {% for a in accounts %}
+  <form method="post" action="{{ url_for('auth.switch_church', public_id=a.tenant.public_id) }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="church-option"{% if a.is_suspended %} disabled{% endif %}>
+      <span class="avatar" translate="no">{{ a.tenant.name|initials }}</span>
+      <span class="min-w-0">
+        <span class="person-name" translate="no">{{ a.tenant.name }}</span><br>
+        <span class="person-sub">{{ a.roles|map(attribute='name')|join(', ') or 'Member' }}{% if a.is_suspended %} · suspended{% endif %}</span>
+      </span>
+      <span class="chev">{{ icon('chevron-right', 18) }}</span>
+    </button>
+  </form>
+  {% endfor %}
+</div>
+{% else %}
+<p class="text-muted">Your account is not linked to any church yet. Ask your church administrator to invite you, or register a new church.</p>
+<a class="btn btn-primary btn-block" href="{{ url_for('auth.register') }}">Register a church</a>
+{% endif %}
+<form method="post" action="{{ url_for('auth.logout') }}" class="mt-4">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-ghost btn-block">{{ icon('log-out', 17) }}<span>Sign out</span></button>
+</form>
+{% endblock %}

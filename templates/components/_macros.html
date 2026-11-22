@@ -1,0 +1,241 @@
+{#
+  ChurchPlus reusable components.
+  Import with:  {% import "components/_macros.html" as ui with context %}
+#}
+
+{# ---------- Page header ---------- #}
+{% macro page_header(title, subtitle=None) -%}
+<div class="page-header">
+  <div>
+    <h2>{{ title }}</h2>
+    {% if subtitle %}<p>{{ subtitle }}</p>{% endif %}
+  </div>
+  {% if caller %}<div class="page-actions">{{ caller() }}</div>{% endif %}
+</div>
+{%- endmacro %}
+
+{# ---------- Cards ---------- #}
+{% macro card(title=None, subtitle=None, flush=False, id=None, actions=None) -%}
+<section class="card"{% if id %} id="{{ id }}"{% endif %}>
+  {% if title %}
+  <div class="card-header">
+    <div><h3>{{ title }}</h3>{% if subtitle %}<p>{{ subtitle }}</p>{% endif %}</div>
+    {% if actions %}<div class="cluster">{{ actions }}</div>{% endif %}
+  </div>
+  {% endif %}
+  <div class="card-body{% if flush %} flush{% endif %}">{{ caller() }}</div>
+</section>
+{%- endmacro %}
+
+{% macro stat_card(label, value, icon_name='activity', tone='', delta=None, delta_up=True, note=None, href=None) -%}
+<{{ 'a' if href else 'div' }} class="card stat-card"{% if href %} href="{{ href }}"{% endif %}>
+  <div class="stat-top">
+    <span class="stat-label">{{ label }}</span>
+    <span class="stat-icon{% if tone %} tone-{{ tone }}{% endif %}">{{ icon(icon_name, 18) }}</span>
+  </div>
+  <div class="stat-value">{{ value }}</div>
+  {% if delta or note %}
+  <div class="stat-meta">
+    {% if delta %}<span class="delta {{ 'up' if delta_up else 'down' }}">{{ icon('arrow-up-right' if delta_up else 'arrow-down-right', 14) }}{{ delta }}</span>{% endif %}
+    {% if note %}<span>{{ note }}</span>{% endif %}
+  </div>
+  {% endif %}
+</{{ 'a' if href else 'div' }}>
+{%- endmacro %}
+
+{# ---------- Buttons ---------- #}
+{# attrs: dict of extra attributes, e.g. {'data-modal-open': 'member-modal', 'disabled': True} #}
+{% macro button(label, icon_name=None, kind='', href=None, type='button', size='', attrs={}) -%}
+{% set cls = 'btn' ~ (' btn-' ~ kind if kind else '') ~ (' btn-' ~ size if size else '') %}
+{% if href %}<a class="{{ cls }}" href="{{ href }}"{{ attrs|xmlattr }}>{% else %}<button type="{{ type }}" class="{{ cls }}"{{ attrs|xmlattr }}>{% endif %}
+{% if icon_name %}{{ icon(icon_name, 17) }}{% endif %}<span>{{ label }}</span>
+{% if href %}</a>{% else %}</button>{% endif %}
+{%- endmacro %}
+
+{# Destructive action behind a confirmation dialog. #}
+{% macro confirm_button(action, label, message, confirm_label='Delete', icon_name='trash-2', kind='danger', size='sm', title=None) -%}
+<form method="post" action="{{ action }}" data-confirm="{{ message }}" data-confirm-action="{{ confirm_label }}"{% if title %} data-confirm-title="{{ title }}"{% endif %} class="cluster">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <button type="submit" class="btn btn-{{ kind }}{% if size %} btn-{{ size }}{% endif %}">{{ icon(icon_name, 16) }}<span>{{ label }}</span></button>
+</form>
+{%- endmacro %}
+
+{# ---------- Badges, avatars, people ---------- #}
+{% set STATUS_TONES = {
+  'active': 'success', 'approved': 'success', 'paid': 'success', 'present': 'success', 'completed': 'success',
+  'trial': 'info', 'trialing': 'info', 'pending': 'warning', 'draft': 'warning', 'past_due': 'warning', 'late': 'warning',
+  'inactive': '', 'cancelled': '', 'transferred': '', 'archived': '',
+  'suspended': 'danger', 'rejected': 'danger', 'overdue': 'danger', 'absent': 'danger', 'deceased': '',
+} %}
+{% macro badge(text, tone=None) -%}
+{% set key = (text|string).lower().replace(' ', '_') %}
+{% set t = tone if tone is not none else STATUS_TONES.get(key, 'accent') %}
+<span class="badge{% if t %} badge-{{ t }}{% endif %}">{{ text|string|replace('_', ' ')|capitalize }}</span>
+{%- endmacro %}
+
+{% macro avatar(name, src=None, size='') -%}
+<span class="avatar{% if size %} avatar-{{ size }}{% endif %}" translate="no">{% if src %}<img src="{{ src }}" alt="">{% else %}{{ name|initials }}{% endif %}</span>
+{%- endmacro %}
+
+{% macro person(name, sub=None, src=None, href=None) -%}
+<div class="person">
+  {{ avatar(name, src, 'sm') }}
+  <div class="min-w-0">
+    {% if href %}<a class="person-name" href="{{ href }}" translate="no">{{ name }}</a>{% else %}<div class="person-name" translate="no">{{ name }}</div>{% endif %}
+    {% if sub %}<div class="person-sub" translate="no">{{ sub }}</div>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro profile_card(name, meta=None, src=None, badge_text=None) -%}
+<div class="card profile-card">
+  {{ avatar(name, src, 'lg') }}
+  <div class="who">
+    <div class="name" translate="no">{{ name }}</div>
+    {% if meta %}<div class="meta" translate="no">{{ meta }}</div>{% endif %}
+    {% if badge_text %}<div class="mt-1">{{ badge(badge_text) }}</div>{% endif %}
+    {% if caller %}<div class="cluster mt-1">{{ caller() }}</div>{% endif %}
+  </div>
+</div>
+{%- endmacro %}
+
+{# ---------- Empty state ---------- #}
+{% macro empty_state(title, text=None, icon_name='inbox') -%}
+<div class="empty-state">
+  <span class="empty-icon">{{ icon(icon_name, 24) }}</span>
+  <h3>{{ title }}</h3>
+  {% if text %}<p>{{ text }}</p>{% endif %}
+  {% if caller %}{{ caller() }}{% endif %}
+</div>
+{%- endmacro %}
+
+{# ---------- Alerts ---------- #}
+{% macro alert(message, kind='info', title=None) -%}
+{% set ic = {'info': 'info', 'success': 'check-circle-2', 'warning': 'alert-triangle', 'danger': 'alert-circle'}[kind] %}
+<div class="alert alert-{{ kind }}" role="{{ 'alert' if kind == 'danger' else 'status' }}">
+  {{ icon(ic, 18) }}
+  <div class="alert-body">{% if title %}<strong>{{ title }}</strong>{% endif %}{{ message }}</div>
+</div>
+{%- endmacro %}
+
+{# ---------- Forms (work with WTForms fields or plain values) ---------- #}
+{% macro field(f, label=None, help=None, span=False, placeholder=None, icon_name=None) -%}
+{% set errors = f.errors if f.errors is defined else [] %}
+<div class="field{% if errors %} has-error{% endif %}{% if span %} span-2{% endif %}">
+  {% if f.type not in ('BooleanField',) %}
+  <label class="label" for="{{ f.id }}">{{ label or f.label.text }}{% if f.flags.required %}<span class="req" aria-hidden="true">*</span>{% endif %}</label>
+  {% endif %}
+  {% set kw = {'class': 'select' if f.type in ('SelectField', 'SelectMultipleField', 'QuerySelectField') else ('textarea' if f.type == 'TextAreaField' else 'input')} %}
+  {% if placeholder %}{% set _ = kw.update({'placeholder': placeholder}) %}{% endif %}
+  {% if errors %}{% set _ = kw.update({'aria-invalid': 'true', 'aria-describedby': f.id ~ '-error'}) %}{% endif %}
+  {% if f.type == 'BooleanField' %}
+    <label class="check">{{ f() }} {{ label or f.label.text }}</label>
+  {% elif f.type == 'FileField' %}
+    <div class="upload-drop">{{ icon('cloud-upload', 22) }}{{ f(accept=f.render_kw.accept if f.render_kw else None) }}</div>
+  {% elif icon_name %}
+    <div class="input-icon">{{ icon(icon_name, 17) }}{{ f(**kw) }}</div>
+  {% else %}
+    {{ f(**kw) }}
+  {% endif %}
+  {% if help or f.description %}<span class="help">{{ help or f.description }}</span>{% endif %}
+  {% for e in errors %}<span class="field-error" id="{{ f.id }}-error">{{ e }}</span>{% endfor %}
+</div>
+{%- endmacro %}
+
+{# Plain inputs for filters and simple forms. #}
+{% macro input(name, label=None, value='', type='text', placeholder='', required=False, help=None, span=False, icon_name=None, attrs={}) -%}
+<div class="field{% if span %} span-2{% endif %}">
+  {% if label %}<label class="label" for="f-{{ name }}">{{ label }}{% if required %}<span class="req" aria-hidden="true">*</span>{% endif %}</label>{% endif %}
+  {% if icon_name %}<div class="input-icon">{{ icon(icon_name, 17) }}{% endif %}
+  <input class="input" id="f-{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value }}" placeholder="{{ placeholder }}"{% if required %} required{% endif %}{{ attrs|xmlattr }}>
+  {% if icon_name %}</div>{% endif %}
+  {% if help %}<span class="help">{{ help }}</span>{% endif %}
+</div>
+{%- endmacro %}
+
+{% macro select(name, options, label=None, selected=None, span=False, placeholder=None) -%}
+<div class="field{% if span %} span-2{% endif %}">
+  {% if label %}<label class="label" for="f-{{ name }}">{{ label }}</label>{% endif %}
+  <select class="select" id="f-{{ name }}" name="{{ name }}">
+    {% if placeholder %}<option value="">{{ placeholder }}</option>{% endif %}
+    {% for value, text in options %}<option value="{{ value }}"{% if value|string == selected|string %} selected{% endif %}>{{ text }}</option>{% endfor %}
+  </select>
+</div>
+{%- endmacro %}
+
+{# ---------- Filter bar for list pages (GET form) ---------- #}
+{% macro filter_bar(action, q='', placeholder='Search', filters=()) -%}
+<form class="filter-bar" method="get" action="{{ action }}" role="search">
+  <div class="input-icon search-input">{{ icon('search', 17) }}<input class="input" type="search" name="q" value="{{ q }}" placeholder="{{ placeholder }}" aria-label="{{ placeholder }}"></div>
+  {% for name, label, options, selected in filters %}
+  <select class="select" name="{{ name }}" aria-label="{{ label }}">
+    <option value="">{{ label }}: all</option>
+    {% for value, text in options %}<option value="{{ value }}"{% if value|string == selected|string %} selected{% endif %}>{{ text }}</option>{% endfor %}
+  </select>
+  {% endfor %}
+  <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Apply</span></button>
+</form>
+{%- endmacro %}
+
+{# ---------- Pagination (works with Flask-SQLAlchemy Pagination) ---------- #}
+{% macro pagination(p, endpoint, params={}) -%}
+{% if p and p.pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  <span>Showing {{ p.first }}–{{ p.last }} of {{ p.total }}</span>
+  <div class="pager">
+    {% if p.has_prev %}<a href="{{ url_for(endpoint, page=p.prev_num, **params) }}" aria-label="Previous page">{{ icon('chevron-left', 16) }}</a>{% else %}<span class="disabled">{{ icon('chevron-left', 16) }}</span>{% endif %}
+    {% for n in p.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+      {% if n is none %}<span class="disabled">…</span>
+      {% elif n == p.page %}<span class="current" aria-current="page">{{ n }}</span>
+      {% else %}<a href="{{ url_for(endpoint, page=n, **params) }}">{{ n }}</a>{% endif %}
+    {% endfor %}
+    {% if p.has_next %}<a href="{{ url_for(endpoint, page=p.next_num, **params) }}" aria-label="Next page">{{ icon('chevron-right', 16) }}</a>{% else %}<span class="disabled">{{ icon('chevron-right', 16) }}</span>{% endif %}
+  </div>
+</nav>
+{% endif %}
+{%- endmacro %}
+
+{# ---------- Modal ---------- #}
+{% macro modal(id, title, size='') -%}
+<dialog class="modal{% if size %} modal-{{ size }}{% endif %}" id="{{ id }}" aria-labelledby="{{ id }}-title">
+  <div class="modal-head">
+    <h3 id="{{ id }}-title">{{ title }}</h3>
+    <button type="button" class="btn btn-ghost btn-icon btn-sm" data-modal-close aria-label="Close">{{ icon('x', 18) }}</button>
+  </div>
+  {{ caller() }}
+</dialog>
+{%- endmacro %}
+
+{# ---------- Dropdown menu ---------- #}
+{% macro dropdown(label='Actions', icon_name='more-horizontal', items=(), icon_only=True, align='') -%}
+<div class="dropdown">
+  <button type="button" class="btn {{ 'btn-ghost btn-icon btn-sm' if icon_only else 'btn-sm' }}" data-dropdown-toggle aria-haspopup="true" aria-expanded="false" aria-label="{{ label }}">
+    {{ icon(icon_name, 17) }}{% if not icon_only %}<span>{{ label }}</span>{{ icon('chevron-down', 15) }}{% endif %}
+  </button>
+  <div class="dropdown-menu{% if align %} align-{{ align }}{% endif %}" role="menu">
+    {% for text, href, ic in items %}
+      {% if text == '-' %}<div class="dropdown-divider"></div>
+      {% else %}<a class="dropdown-item" role="menuitem" href="{{ href }}">{{ icon(ic, 16) }} {{ text }}</a>{% endif %}
+    {% endfor %}
+  </div>
+</div>
+{%- endmacro %}
+
+{# ---------- Chart ---------- #}
+{% macro chart(spec, size='', label='Chart') -%}
+<div class="chart-box{% if size %} {{ size }}{% endif %}">
+  <canvas data-chart='{{ spec|tojson|forceescape }}' role="img" aria-label="{{ label }}"></canvas>
+</div>
+{%- endmacro %}
+
+{# ---------- Activity feed ---------- #}
+{% macro feed(items) -%}
+<ul class="feed">
+  {% for it in items %}
+  <li>
+    <span class="feed-icon">{{ icon(it.icon or 'activity', 16) }}</span>
+    <div class="min-w-0"><div class="feed-text">{{ it.text }}</div><div class="feed-time">{{ it.when }}</div></div>
+  </li>
+  {% endfor %}
+</ul>
+{%- endmacro %}

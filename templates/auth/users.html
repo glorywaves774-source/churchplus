@@ -1,0 +1,58 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Users & roles{% endblock %}
+{% block content %}
+{% call ui.page_header('Team', 'People who can sign in to ' ~ g.tenant.name ~ ' · ' ~ limit.label) %}
+  {{ ui.button('Roles', 'shield', href=url_for('auth.roles')) }}
+  {% if can('users.create') %}
+    {% if limit.allowed %}{{ ui.button('Invite person', 'user-plus', 'primary', href=url_for('auth.invite_user')) }}
+    {% else %}{{ ui.button('User limit reached', 'lock', attrs={'disabled': True}) }}{% endif %}
+  {% endif %}
+{% endcall %}
+
+<section class="card">
+  {{ ui.filter_bar(url_for('auth.users'), q, 'Search name or email',
+       filters=[('role', 'Role', role_options, role_id),
+                ('status', 'Status', [('active', 'Active'), ('suspended', 'Suspended')], status)]) }}
+  {% if accounts %}
+  <div class="table-wrap">
+    <table class="table" data-sortable>
+      <thead><tr><th data-sort="text">Person</th><th>Roles</th><th data-sort="text">Branch</th><th>Sign-in</th><th>Status</th><th class="col-actions"><span class="sr-only">Actions</span></th></tr></thead>
+      <tbody>
+        {% for a in accounts %}
+        <tr>
+          <td>{{ ui.person(a.user.full_name, a.user.email) }}</td>
+          <td class="wrap">{% for r in a.roles %}<span class="badge badge-accent plain">{{ r.name }}</span> {% endfor %}{% if a.is_owner %}<span class="badge badge-gold plain">Owner</span>{% endif %}</td>
+          <td class="wrap" translate="no">{{ a.branch.name if a.branch else 'All branches' }}</td>
+          <td class="nowrap">{% if not a.user.password_hash %}{{ ui.badge('Invited', 'warning') }}{% elif a.user.two_factor_enabled %}{{ ui.badge('Two-step', 'success') }}{% else %}{{ ui.badge('Password', '') }}{% endif %}</td>
+          <td>{{ ui.badge('suspended' if a.is_suspended else 'active') }}</td>
+          <td class="col-actions">
+            {% if a.id != g.account.id and not a.is_owner %}
+            <div class="cluster">
+              {% if can('users.edit') %}<a class="btn btn-sm" href="{{ url_for('auth.edit_user', public_id=a.public_id) }}">{{ icon('edit', 15) }}<span>Edit</span></a>{% endif %}
+              {% if can('users.create') and not a.user.password_hash %}
+                <form method="post" action="{{ url_for('auth.resend_invite', public_id=a.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost" type="submit">{{ icon('send', 15) }}<span>Resend</span></button></form>
+              {% endif %}
+              {% if can('users.edit') %}
+                {% if a.is_suspended %}
+                  <form method="post" action="{{ url_for('auth.toggle_user', public_id=a.public_id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn btn-sm btn-ghost" type="submit">{{ icon('user-check', 15) }}<span>Reactivate</span></button></form>
+                {% else %}
+                  {{ ui.confirm_button(url_for('auth.toggle_user', public_id=a.public_id), 'Suspend', a.user.full_name ~ ' will not be able to sign in to ' ~ g.tenant.name ~ ' until reactivated.', 'Suspend', 'user-x', 'ghost', 'sm') }}
+                {% endif %}
+              {% endif %}
+              {% if can('users.delete') %}
+                {{ ui.confirm_button(url_for('auth.remove_user', public_id=a.public_id), 'Remove', a.user.full_name ~ ' will lose access to ' ~ g.tenant.name ~ '. Their own login stays for any other churches.', 'Remove access', 'user-minus', 'ghost', 'sm') }}
+              {% endif %}
+            </div>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    {{ ui.empty_state('No one found', 'Try a different search or filter.', 'users') }}
+  {% endif %}
+</section>
+{% endblock %}

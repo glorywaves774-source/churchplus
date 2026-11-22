@@ -1,0 +1,33 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Platform overview{% endblock %}
+{% block content %}
+{{ ui.page_header('ChurchPlus platform', 'Subscriptions and usage across all churches. Church records stay private to each church.') }}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Churches', total, 'church', 'info', note=(by_status.get('active', 0)) ~ ' active · ' ~ (by_status.get('trial', 0)) ~ ' on trial', href=url_for('platform.churches')) }}
+  {{ ui.stat_card('Monthly recurring revenue', mrr|money('GHS'), 'trending-up', 'success') }}
+  {{ ui.stat_card('Collected (30 days)', revenue|money('GHS'), 'banknote', 'gold') }}
+  {{ ui.stat_card('Past due', sub_status.get('past_due', 0), 'alert-triangle', 'danger' if sub_status.get('past_due') else '', note=(sub_status.get('suspended', 0)) ~ ' suspended', href=url_for('platform.invoices')) }}
+</div>
+{% if pending %}{% call ui.card('Waiting for approval', flush=True) %}
+  <ul class="feed">{% for t in pending %}<li><span class="feed-icon">{{ icon('clock', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('platform.church', public_id=t.public_id) }}" translate="no">{{ t.name }}</a><div class="feed-time">{{ t.city or '' }} · registered {{ t.created_at|localtime('%d %b %Y') }}</div></div></li>{% endfor %}</ul>
+{% endcall %}<div class="mb-4"></div>{% endif %}
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('New churches per month') %}{{ ui.chart(chart, label='New churches per month') }}{% endcall %}
+    {% call ui.card('Overdue invoices', flush=True) %}
+      {% if overdue %}<div class="table-wrap"><table class="table"><thead><tr><th>Invoice</th><th>Church</th><th>Due</th><th class="col-num">Amount</th></tr></thead>
+      <tbody>{% for i in overdue %}<tr><td class="nowrap">{{ i.number }}</td><td class="wrap"><a href="{{ url_for('platform.church', public_id=names[i.tenant_id].public_id) }}" translate="no">{{ names[i.tenant_id].name }}</a></td><td class="nowrap">{{ i.due_on.strftime('%d %b %Y') }}</td><td class="num">{{ i.amount|money(i.currency) }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}{{ ui.empty_state('Nothing overdue', icon_name='check-circle-2') }}{% endif %}
+    {% endcall %}
+  </div>
+  {% call ui.card('Trials ending within 7 days', flush=True) %}
+    {% if trials %}<ul class="feed">{% for t, s in trials %}<li><span class="feed-icon">{{ icon('clock', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('platform.church', public_id=t.public_id) }}" translate="no">{{ t.name }}</a><div class="feed-time">{{ s.plan.name }} · ends {{ s.trial_ends_at|localtime('%d %b') }}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No trials ending soon', icon_name='clock') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', filename='vendor/chartjs/chart.umd.min.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/charts.js') }}" defer></script>
+{% endblock %}

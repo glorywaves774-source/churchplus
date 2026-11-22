@@ -1,0 +1,21 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Add member church{% endblock %}
+{% block content %}
+{{ ui.page_header('Add a member church', 'The administrator receives an email invitation to set up their account.') }}
+{% call ui.card() %}
+<form method="post" class="form-grid" novalidate>
+  {{ form.csrf_token }}
+  {{ ui.field(form.name, placeholder='e.g. Grace Chapel – Madina') }}
+  {{ ui.field(form.city) }}
+  <p class="form-section-title">Church administrator</p>
+  {{ ui.field(form.admin_first) }}
+  {{ ui.field(form.admin_last) }}
+  {{ ui.field(form.admin_email, span=True, icon_name='mail') }}
+  <div class="form-actions span-2">
+    <a class="btn" href="{{ url_for('tenants.member_churches') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('send', 17) }}<span>Add church and send invitation</span></button>
+  </div>
+</form>
+{% endcall %}
+{% endblock %}

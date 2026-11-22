@@ -1,0 +1,28 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Communication settings{% endblock %}
+{% block content %}
+{{ ui.page_header('Communication settings') }}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('SMS sender name') %}
+    <div class="form-grid">
+      {{ ui.input('sms_sender', 'Sender name', cfg.sms_sender, help='Up to 11 letters or numbers, e.g. GraceChapel. It must be registered with your SMS provider. Now showing as: ' ~ sender, attrs={'maxlength': 11}) }}
+    </div>
+  {% endcall %}
+  {% call ui.card('Birthday greetings', 'Sent automatically each morning to members who have not opted out') %}
+    <div class="form-grid">
+      <label class="check span-2"><input type="checkbox" name="birthday_enabled" value="y"{% if cfg.birthday_enabled %} checked{% endif %}> Send birthday greetings</label>
+      {{ ui.select('birthday_channel', [('sms', 'SMS'), ('whatsapp', 'WhatsApp'), ('email', 'Email')], 'Send by', cfg.birthday_channel) }}
+      <div class="field span-2"><label class="label" for="f-birthday_text">Message</label><textarea class="textarea" id="f-birthday_text" name="birthday_text" data-count="#bd-count">{{ cfg.birthday_text }}</textarea><div class="help"><span id="bd-count"></span></div></div>
+    </div>
+  {% endcall %}
+  {% call ui.card('Reminders', 'Sent the day before') %}
+    <div class="stack">
+      <label class="check"><input type="checkbox" name="event_reminders" value="y"{% if cfg.event_reminders %} checked{% endif %}> Remind people registered for an event</label>
+      <label class="check"><input type="checkbox" name="appointment_reminders" value="y"{% if cfg.appointment_reminders %} checked{% endif %}> Remind people of counselling appointments (the text never says what the appointment is about)</label>
+    </div>
+  {% endcall %}
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button></div>
+</form>
+{% endblock %}

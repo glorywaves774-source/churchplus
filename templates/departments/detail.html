@@ -1,0 +1,54 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ dept.name }}{% endblock %}
+{% block content %}
+{% call ui.page_header(dept.name, dept.kind.value|capitalize ~ (' · ' ~ dept.meeting_schedule if dept.meeting_schedule else '') ~ (' · ' ~ dept.branch.name if dept.branch else '')) %}
+  {% if can('worship.create') %}{{ ui.button('Schedule meeting', 'calendar-plus', href=url_for('worship.create', department=dept.public_id)) }}{% endif %}
+  {% if can('departments.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('departments.edit', public_id=dept.public_id)) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Members', memberships|length, 'users') }}
+  {{ ui.stat_card('Leader', dept.leader.display_name if dept.leader else 'Not set', 'star', 'gold') }}
+  {{ ui.stat_card('Meeting attendance', (avg ~ '%') if avg is not none else '—', 'clipboard-check', 'success', note='average, last 10 meetings') }}
+</div>
+{% if dept.description %}<p class="text-muted">{{ dept.description }}</p>{% endif %}
+
+<div class="grid grid-main-side">
+  {% call ui.card('Members', flush=True) %}
+    {% if memberships %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Member</th><th>Role</th><th>Since</th><th class="col-actions"></th></tr></thead>
+      <tbody>
+        {% for dm in memberships %}
+        <tr>
+          <td>{{ ui.person(dm.member.display_name, dm.member.phone, href=url_for('members.profile', public_id=dm.member.public_id)) }}</td>
+          <td>{{ ui.badge(dm.role, 'gold' if dm.role == 'Leader' else 'accent') }}</td>
+          <td class="nowrap">{{ dm.joined_on.strftime('%b %Y') }}</td>
+          <td class="col-actions">{% if can('departments.edit') %}{{ ui.confirm_button(url_for('departments.remove_member', public_id=dept.public_id, dm_id=dm.public_id), '', 'Remove ' ~ dm.member.display_name ~ ' from ' ~ dept.name ~ '?', 'Remove', 'user-minus', 'ghost', 'sm') }}{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No members yet', icon_name='users') }}{% endif %}
+  {% endcall %}
+  <div class="stack">
+    {% if can('departments.edit') %}
+    {% call ui.card('Add a member') %}
+      <form method="post" action="{{ url_for('departments.add_member', public_id=dept.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('number', 'Membership number', placeholder='e.g. GCI-000124', required=True) }}
+        {{ ui.input('role', 'Role', 'Member', help='e.g. Member, Secretary, Treasurer, Leader') }}
+        <button class="btn" type="submit">{{ icon('user-plus', 17) }}<span>Add</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% call ui.card('Recent meetings', flush=True) %}
+      {% if meetings %}
+      <ul class="feed">{% for s in meetings %}<li><span class="feed-icon">{{ icon('calendar-check', 16) }}</span><div><a class="feed-text" href="{{ url_for('attendance.register', public_id=s.public_id) }}">{{ s.title }}</a><div class="feed-time">{{ s.service_date.strftime('%a %d %b %Y') }} · {{ counts.get(s.id, {}).get('members', 0) }} present</div></div></li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No meetings recorded', icon_name='calendar-days') }}{% endif %}
+    {% endcall %}
+    {% if can('departments.delete') %}{{ ui.confirm_button(url_for('departments.delete', public_id=dept.public_id), 'Delete department', 'This deletes ' ~ dept.name ~ ' and its member list. Meeting records are kept.', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

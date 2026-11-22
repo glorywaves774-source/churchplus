@@ -1,0 +1,53 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Import members{% endblock %}
+{% block content %}
+{{ ui.page_header('Import members', 'Upload a spreadsheet. Nothing is saved until you have checked the preview.') }}
+
+{% if preview %}
+  {% call ui.card('Check before importing') %}
+    <div class="grid grid-stats mb-4">
+      {{ ui.stat_card('Ready to import', preview.created|length, 'user-check', 'success') }}
+      {{ ui.stat_card('Errors', preview.errors|length, 'alert-circle', 'danger') }}
+      {{ ui.stat_card('Warnings', preview.warnings|length, 'alert-triangle', 'gold') }}
+    </div>
+    {% if preview.errors %}
+      {{ ui.alert('Fix these rows in your spreadsheet and upload it again. Nothing has been imported.', 'danger', 'The file has errors') }}
+      <div class="table-wrap import-errors mt-4">
+        <table class="table"><thead><tr><th>Row</th><th>Problem</th></tr></thead><tbody>
+          {% for row, msg in preview.errors %}<tr><td class="num">{{ row or '—' }}</td><td class="wrap">{{ msg }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+    {% else %}
+      {% if preview.warnings %}
+      <div class="table-wrap import-errors mb-4">
+        <table class="table"><thead><tr><th>Row</th><th>Check</th></tr></thead><tbody>
+          {% for row, msg in preview.warnings %}<tr><td class="num">{{ row }}</td><td class="wrap">{{ msg }}</td></tr>{% endfor %}
+        </tbody></table>
+      </div>
+      {% endif %}
+      <form method="post" class="cluster">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="confirm" value="1">
+        <a class="btn" href="{{ url_for('members.import_members') }}">Start again</a>
+        <button class="btn btn-primary" type="submit">{{ icon('upload', 17) }}<span>Import {{ preview.created|length }} members</span></button>
+      </form>
+    {% endif %}
+  {% endcall %}
+  <div class="mb-4"></div>
+{% endif %}
+
+<div class="grid grid-main-side">
+  {% call ui.card('Upload a spreadsheet') %}
+    <form method="post" enctype="multipart/form-data" class="stack" novalidate>
+      {{ form.csrf_token }}
+      {{ ui.field(form.file, help='CSV or Excel (.xlsx), up to 5,000 rows.') }}
+      {{ ui.field(form.branch) }}
+      <div class="cluster"><button class="btn btn-primary" type="submit">{{ icon('eye', 17) }}<span>Check file</span></button></div>
+    </form>
+  {% endcall %}
+  {% call ui.card('How to prepare the file') %}
+    <p class="text-muted">Use the template so the columns are recognised. Only first name and surname are required. Dates can be YYYY-MM-DD or DD/MM/YYYY. Membership numbers are assigned automatically.</p>
+    <a class="btn" href="{{ url_for('members.import_template') }}">{{ icon('download', 17) }}<span>Download template</span></a>
+  {% endcall %}
+</div>
+{% endblock %}

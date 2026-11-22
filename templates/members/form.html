@@ -1,0 +1,60 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ 'Edit ' ~ member.display_name if member else 'Register member' }}{% endblock %}
+{% block content %}
+{{ ui.page_header('Edit member' if member else 'Register a member',
+                  (member.membership_number ~ ' · ' ~ member.full_name) if member else 'A membership number is assigned automatically.') }}
+<form method="post" novalidate class="stack">
+  {{ form.csrf_token }}
+  {% call ui.card('Personal details') %}
+  <div class="form-grid">
+    {{ ui.field(form.title) }}
+    {{ ui.field(form.gender) }}
+    {{ ui.field(form.first_name) }}
+    {{ ui.field(form.middle_name) }}
+    {{ ui.field(form.last_name) }}
+    {{ ui.field(form.date_of_birth) }}
+    {{ ui.field(form.marital_status) }}
+    {{ ui.field(form.nationality, placeholder='Ghanaian') }}
+    {{ ui.field(form.occupation) }}
+    {{ ui.field(form.employer) }}
+    {{ ui.field(form.hometown) }}
+  </div>
+  {% endcall %}
+
+  {% call ui.card('Contact') %}
+  <div class="form-grid">
+    {{ ui.field(form.phone, icon_name='phone', placeholder='024 000 0000') }}
+    {{ ui.field(form.alt_phone, icon_name='phone') }}
+    {{ ui.field(form.email, span=True, icon_name='mail') }}
+    {{ ui.field(form.address, span=True) }}
+    {{ ui.field(form.city) }}
+    {{ ui.field(form.region) }}
+    {{ ui.field(form.digital_address, placeholder='GA-123-4567') }}
+    <p class="form-section-title">Emergency contact</p>
+    {{ ui.field(form.emergency_name) }}
+    {{ ui.field(form.emergency_phone, icon_name='phone') }}
+    {{ ui.field(form.emergency_relation, placeholder='e.g. Spouse, Brother') }}
+  </div>
+  {% endcall %}
+
+  {% call ui.card('Church life') %}
+  <div class="form-grid">
+    {{ ui.field(form.branch, help=('Moves between branches are recorded on the profile with “Transfer”.' if member and member.branch else None)) }}
+    {{ ui.field(form.date_joined) }}
+    {{ ui.field(form.previous_church, span=True) }}
+    {{ ui.field(form.is_baptised, span=True) }}
+    {{ ui.field(form.baptism_date) }}
+    {{ ui.field(form.baptism_place) }}
+    {{ ui.field(form.baptised_by) }}
+    {{ ui.field(form.allow_birthday_messages) }}
+    {{ ui.field(form.notes, span=True, help='Visible to people who can view member records. Do not record counselling notes here.') }}
+  </div>
+  {% endcall %}
+
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('members.profile', public_id=member.public_id) if member else url_for('members.index') }}">Cancel</a>
+    <button type="submit" class="btn btn-primary">{{ icon('save', 17) }}<span>{{ 'Save changes' if member else 'Register member' }}</span></button>
+  </div>
+</form>
+{% endblock %}

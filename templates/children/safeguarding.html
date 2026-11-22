@@ -1,0 +1,35 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Safeguarding{% endblock %}
+{% block content %}
+{{ ui.page_header('Safeguarding concerns', 'Visible only to people with children approval rights. Every entry is recorded.') }}
+<div class="grid grid-main-side">
+  <section class="card">
+    {% if rows %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Ref</th><th>Date</th><th>Child</th><th>Category</th><th>Status</th></tr></thead>
+      <tbody>{% for i in rows %}<tr>
+        <td class="nowrap"><a class="person-name" href="{{ url_for('children.incident', public_id=i.public_id) }}">{{ i.reference }}</a></td>
+        <td class="nowrap">{{ i.occurred_on.strftime('%d %b %Y') }}</td>
+        <td class="wrap" translate="no">{{ i.child.member.display_name if i.child else '—' }}</td>
+        <td class="wrap">{{ i.category }}</td>
+        <td>{{ ui.badge(i.status.value, {'open': 'danger', 'referred': 'warning', 'closed': ''}[i.status.value]) }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No concerns recorded', icon_name='shield-check') }}{% endif %}
+  </section>
+  {% call ui.card('Record a concern') %}
+    <form method="post" class="stack">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('occurred_on', 'Date', form.get('occurred_on', today.isoformat()), 'date', required=True) }}
+      {% set co = [] %}{% for c in children %}{% set _ = co.append((c.public_id, c.member.display_name)) %}{% endfor %}
+      {{ ui.select('child', co, 'Child', form.get('child', ''), placeholder='Not about one child') }}
+      {% set ko = [] %}{% for k in categories %}{% set _ = ko.append((k, k)) %}{% endfor %}
+      {{ ui.select('category', ko, 'Category', form.get('category', '')) }}
+      <div class="field"><label class="label" for="f-description">What happened</label><textarea class="textarea" id="f-description" name="description" required>{{ form.get('description', '') }}</textarea><div class="help">Write facts: what you saw or were told, by whom, and when. Do not investigate yourself.</div></div>
+      <div class="field"><label class="label" for="f-action_taken">Action taken</label><textarea class="textarea" id="f-action_taken" name="action_taken">{{ form.get('action_taken', '') }}</textarea></div>
+      <button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Record</span></button>
+    </form>
+  {% endcall %}
+</div>
+{% endblock %}

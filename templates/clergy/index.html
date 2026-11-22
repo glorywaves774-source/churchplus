@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Clergy and staff{% endblock %}
+{% block content %}
+{% call ui.page_header('Clergy, staff and volunteers') %}
+  {{ ui.button('Leave' ~ (' (' ~ pending ~ ')' if pending else ''), 'calendar-days', href=url_for('clergy.leave')) }}
+  {% if can('clergy.create') %}{{ ui.button('Add person', 'user-plus', 'primary', href=url_for('clergy.create')) }}{% endif %}
+{% endcall %}
+
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Clergy', counts.get('clergy', 0), 'book-open') }}
+  {{ ui.stat_card('Staff', counts.get('staff', 0), 'briefcase', 'info') }}
+  {{ ui.stat_card('Volunteers', counts.get('volunteer', 0), 'hand-heart', 'gold') }}
+  {{ ui.stat_card('Leave awaiting approval', pending, 'clock', 'danger' if pending else '') }}
+</div>
+
+<section class="card">
+  {{ ui.filter_bar(url_for('clergy.index'), q, 'Search name, position or number', filters=[
+       ('category', 'Category', [('clergy','Clergy'),('staff','Staff'),('volunteer','Volunteers')], category),
+       ('status', 'Status', [('active','Active'),('on_leave','On leave'),('suspended','Suspended'),('exited','Exited')], status)]) }}
+  {% if rows %}
+  <div class="table-wrap"><table class="table" data-sortable>
+    <thead><tr><th data-sort="text">Name</th><th data-sort="text">Position</th><th>Category</th><th>Number</th><th>Phone</th><th>Status</th></tr></thead>
+    <tbody>
+      {% for s in rows %}
+      <tr>
+        <td>{{ ui.person(s.display_name, s.department.name if s.department else None, href=url_for('clergy.profile', public_id=s.public_id)) }}</td>
+        <td class="wrap">{{ s.position }}</td>
+        <td>{{ ui.badge(s.category.value, {'clergy': 'accent', 'staff': 'info', 'volunteer': 'gold'}[s.category.value]) }}</td>
+        <td class="nowrap" translate="no">{{ s.staff_number }}</td>
+        <td class="nowrap" translate="no">{{ s.phone or '—' }}</td>
+        <td>{{ ui.badge(s.status.value, {'active': 'success', 'on_leave': 'info', 'suspended': 'danger', 'exited': ''}[s.status.value]) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table></div>
+  {% else %}{{ ui.empty_state('No one found', 'Add pastors, ministers, staff and volunteers.', 'briefcase') }}{% endif %}
+</section>
+{% endblock %}

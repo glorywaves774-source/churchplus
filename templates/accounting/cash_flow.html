@@ -1,0 +1,27 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "accounting/_report.html" as rp with context %}
+{% block title %}Cash flow{% endblock %}
+{% block content %}
+{{ rp.filters('accounting.cash_flow', 'period', start=start, end=end, csv=False) }}
+<section class="card report">
+  <div class="card-body">{{ rp.report_title('Cash flow statement', start.strftime('%d %b %Y') ~ ' – ' ~ end.strftime('%d %b %Y') ~ ' · cash, bank and mobile money') }}</div>
+  <div class="table-wrap"><table class="table statement">
+    <tbody><tr><td><strong>Opening cash and bank</strong></td><td class="num"><strong>{{ cf.opening|money(plain=True) }}</strong></td></tr></tbody>
+    <tbody>
+      <tr class="section-row"><th colspan="2">Money received</th></tr>
+      {% for label, amt in cf.receipts %}<tr><td>{{ label }}</td><td class="num">{{ amt|money(plain=True) }}</td></tr>{% else %}<tr><td class="help">None</td><td></td></tr>{% endfor %}
+      <tr class="total-row"><td>Total received</td><td class="num">{{ cf.total_in|money(plain=True) }}</td></tr>
+    </tbody>
+    <tbody>
+      <tr class="section-row"><th colspan="2">Money paid out</th></tr>
+      {% for label, amt in cf.payments %}<tr><td>{{ label }}</td><td class="num">({{ amt|money(plain=True) }})</td></tr>{% else %}<tr><td class="help">None</td><td></td></tr>{% endfor %}
+      <tr class="total-row"><td>Total paid out</td><td class="num">({{ cf.total_out|money(plain=True) }})</td></tr>
+    </tbody>
+    <tfoot>
+      <tr><td>Net change</td><td class="num">{{ cf.net|money(plain=True) }}</td></tr>
+      <tr class="grand-row"><td>Closing cash and bank</td><td class="num">{{ cf.closing|money }}</td></tr>
+    </tfoot>
+  </table></div>
+</section>
+{% endblock %}

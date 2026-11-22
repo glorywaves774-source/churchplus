@@ -1,0 +1,36 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Counselling{% endblock %}
+{% block content %}
+{% call ui.page_header('Counselling', 'Private pastoral care records') %}
+  {% if can('counselling.create') %}{{ ui.button('New case', 'plus', 'primary', href=url_for('counselling.create')) }}{% endif %}
+{% endcall %}
+<p class="lock-note mb-4">{{ icon('lock', 15) }} You see only cases assigned to you{% if can('counselling.approve') %}, plus standard cases you oversee{% endif %}. Session notes are visible to the counsellor alone. Every case you open is recorded.</p>
+<div class="grid grid-main-side">
+  <section class="card">
+    <div class="filter-bar">
+      <a class="chip" href="{{ url_for('counselling.index', mine=1 if mine else None) }}" aria-pressed="{{ 'true' if status == 'open' else 'false' }}">Open</a>
+      <a class="chip" href="{{ url_for('counselling.index', status='closed', mine=1 if mine else None) }}" aria-pressed="{{ 'true' if status == 'closed' else 'false' }}">Closed</a>
+      <a class="chip" href="{{ url_for('counselling.index', status='all', mine=1 if mine else None) }}" aria-pressed="{{ 'true' if status == 'all' else 'false' }}">All</a>
+      {% if can('counselling.approve') %}<a class="chip" href="{{ url_for('counselling.index', status=status, mine=None if mine else 1) }}" aria-pressed="{{ 'true' if mine else 'false' }}">Only mine</a>{% endif %}
+    </div>
+    {% if rows %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Case</th><th>Person</th><th>Category</th><th>Counsellor</th><th>Opened</th><th>Status</th></tr></thead>
+      <tbody>{% for c in rows %}<tr>
+        <td class="nowrap"><a class="person-name" href="{{ url_for('counselling.detail', public_id=c.public_id) }}">{{ c.reference }}</a>{% if c.is_restricted %}<div class="person-sub">{{ icon('lock', 12) }} Restricted</div>{% endif %}</td>
+        <td class="wrap" translate="no">{{ c.client }}</td>
+        <td class="nowrap">{{ c.category }}</td>
+        <td class="wrap" translate="no">{{ c.counsellor.display_name }}</td>
+        <td class="nowrap">{{ c.opened_on.strftime('%d %b %Y') }}</td>
+        <td>{{ ui.badge(c.status.value, 'info' if c.status.value == 'open' else '') }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No cases here', icon_name='lock') }}{% endif %}
+  </section>
+  {% call ui.card('My next appointments', flush=True) %}
+    {% if upcoming %}<ul class="feed">{% for s in upcoming %}<li><span class="feed-icon">{{ icon('calendar-days', 16) }}</span><div class="grow"><a class="feed-text" href="{{ url_for('counselling.detail', public_id=s.case.public_id) }}">{{ s.case.reference }} · <span translate="no">{{ s.case.client }}</span></a><div class="feed-time">{{ s.scheduled_at.strftime('%a %d %b, %H:%M') }}{% if s.location %} · {{ s.location }}{% endif %}</div></div></li>{% endfor %}</ul>
+    {% else %}{{ ui.empty_state('No appointments booked', icon_name='calendar-days') }}{% endif %}
+  {% endcall %}
+</div>
+{% endblock %}

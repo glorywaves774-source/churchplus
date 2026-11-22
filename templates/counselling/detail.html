@@ -1,0 +1,79 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ c.reference }}{% endblock %}
+{% block content %}
+{% call ui.page_header(c.reference, c.category ~ ' · opened ' ~ c.opened_on.strftime('%d %b %Y')) %}
+  {{ ui.badge(c.status.value, 'info' if c.status.value == 'open' else '') }}
+  {% if c.is_restricted %}{{ ui.badge('restricted', 'danger') }}{% endif %}
+{% endcall %}
+<p class="lock-note mb-4">{{ icon('lock', 15) }} {% if is_counsellor %}You are the counsellor. Your notes are visible to you alone.{% else %}You can see this case for oversight. Session notes are visible to the counsellor only.{% endif %} This visit has been recorded.</p>
+<div class="grid grid-main-side">
+  <div class="stack">
+    {% call ui.card('Person') %}
+      <dl class="kv">
+        <dt>Name</dt><dd translate="no">{% if c.member %}<a href="{{ url_for('members.profile', public_id=c.member.public_id) }}">{{ c.client }}</a>{% else %}{{ c.client }}{% endif %}</dd>
+        {% set phone = c.client_phone or (c.member.phone if c.member else None) %}
+        {% if phone %}<dt>Phone</dt><dd translate="no"><a href="tel:{{ phone }}">{{ phone }}</a></dd>{% endif %}
+        <dt>Counsellor</dt><dd translate="no">{{ c.counsellor.display_name }}</dd>
+        {% if c.closed_on %}<dt>Closed</dt><dd>{{ c.closed_on.strftime('%d %b %Y') }}</dd>{% endif %}
+      </dl>
+    {% endcall %}
+    {% call ui.card('Sessions', id='sessions', flush=True) %}
+      {% if c.sessions %}<ul class="feed">{% for s in c.sessions %}<li>
+        <span class="feed-icon">{{ icon('calendar-days', 16) }}</span>
+        <div class="grow">
+          <div class="feed-text">{{ s.scheduled_at.strftime('%a %d %b %Y, %H:%M') }} · {{ s.duration_minutes }} min{% if s.location %} · {{ s.location }}{% endif %}</div>
+          <div class="feed-time">{{ ui.badge(s.status.value, {'scheduled': 'info', 'held': 'success', 'missed': 'warning', 'cancelled': ''}[s.status.value]) }}</div>
+          {% if is_counsellor %}
+            {% if s.notes %}<div class="pre-wrap mt-4">{{ s.notes }}</div>{% endif %}
+            {% if s.follow_up %}<div class="person-sub">Next step: {{ s.follow_up }}</div>{% endif %}
+            <details class="mt-4 no-print"><summary class="btn btn-sm">{{ icon("edit", 15) }}<span>Write notes</span></summary>
+              <form method="post" action="{{ url_for('counselling.update_session', public_id=c.public_id, session_id=s.public_id) }}" class="stack mt-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                {% set so = [] %}{% for st in statuses %}{% set _ = so.append((st.value, st.value|capitalize)) %}{% endfor %}
+                {{ ui.select('status', so, 'Status', s.status.value) }}
+                <div class="field"><label class="label" for="notes-{{ s.public_id }}">Private notes</label><textarea class="textarea" id="notes-{{ s.public_id }}" name="notes">{{ s.notes or '' }}</textarea></div>
+                <div class="field"><label class="label" for="fu-{{ s.public_id }}">Next step</label><input class="input" id="fu-{{ s.public_id }}" name="follow_up" value="{{ s.follow_up or '' }}"></div>
+                <button class="btn btn-primary btn-sm" type="submit">{{ icon('save', 15) }}<span>Save</span></button>
+              </form>
+            </details>
+          {% endif %}
+        </div>
+      </li>{% endfor %}</ul>
+      {% else %}{{ ui.empty_state('No sessions yet', icon_name='calendar-days') }}{% endif %}
+    {% endcall %}
+  </div>
+  <div class="stack no-print">
+    {% if can('counselling.edit') and (is_counsellor or can('counselling.approve')) and c.status.value == 'open' %}
+    {% call ui.card('Book an appointment') %}
+      <form method="post" action="{{ url_for('counselling.add_session', public_id=c.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {{ ui.input('date', 'Date', now.date().isoformat(), 'date', required=True) }}
+        {{ ui.input('time', 'Time', '10:00', 'time') }}
+        {{ ui.input('duration', 'Length (minutes)', '60', 'number', attrs={'min': 15, 'max': 480, 'step': 15}) }}
+        {{ ui.input('location', 'Where', placeholder="e.g. Pastor's office") }}
+        <button class="btn btn-primary btn-sm" type="submit">{{ icon('calendar-plus', 15) }}<span>Book</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% if can('counselling.edit') and (is_counsellor or can('counselling.approve')) %}
+    <form method="post" action="{{ url_for('counselling.set_status', public_id=c.public_id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="{{ 'close' if c.status.value == 'open' else 'reopen' }}">
+      <button class="btn btn-sm" type="submit">{{ icon('check-circle-2' if c.status.value == 'open' else 'repeat', 15) }}<span>{{ 'Close case' if c.status.value == 'open' else 'Reopen case' }}</span></button>
+    </form>
+    {% endif %}
+    {% if can('counselling.approve') and counsellors|length > 1 %}
+    {% call ui.card('Hand over') %}
+      <form method="post" action="{{ url_for('counselling.handover', public_id=c.public_id) }}" class="stack">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% set co = [] %}{% for a in counsellors if a.id != c.counsellor_id %}{% set _ = co.append((a.public_id, a.display_name)) %}{% endfor %}
+        {{ ui.select('counsellor', co, 'New counsellor') }}
+        <button class="btn btn-sm" type="submit">{{ icon('repeat', 15) }}<span>Hand over</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+    {% if can('counselling.delete') %}{{ ui.confirm_button(url_for('counselling.delete', public_id=c.public_id), 'Delete case', 'Delete ' ~ c.reference ~ ' and all its sessions and notes? This cannot be undone.', 'Delete', 'trash-2', 'ghost', 'sm') }}{% endif %}
+  </div>
+</div>
+{% endblock %}

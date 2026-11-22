@@ -1,0 +1,63 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}New message{% endblock %}
+{% block content %}
+{{ ui.page_header('New message') }}
+{% set v = form if form else initial %}
+<form method="post" class="stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  {% call ui.card('How') %}
+    <div class="segmented" role="radiogroup" aria-label="Channel">
+      {% for value, label, ic in [('sms', 'SMS', 'message-square'), ('whatsapp', 'WhatsApp', 'message-circle'), ('email', 'Email', 'mail')] %}
+      <label class="segment"><input type="radio" name="channel" value="{{ value }}"{% if v.get('channel', 'sms') == value %} checked{% endif %}><span>{{ icon(ic, 16) }} {{ label }}</span></label>
+      {% endfor %}
+    </div>
+    <p class="help mt-4" data-show-when="channel=whatsapp">Only members who agreed to WhatsApp messages receive them (tick it in their contact preferences).</p>
+  {% endcall %}
+  {% call ui.card('Who') %}
+  <div class="form-grid">
+    {% set ao = [] %}{% for k, label in audiences.items() %}{% set _ = ao.append((k, label)) %}{% endfor %}
+    {{ ui.select('audience', ao, 'Send to', v.get('audience', 'all'), span=True) }}
+    <div class="field span-2" data-show-when="audience=branch">
+      {% set bo = [] %}{% for b in branches %}{% set _ = bo.append((b.public_id, b.name)) %}{% endfor %}
+      {{ ui.select('branch', bo, 'Branch', v.get('branch', '')) }}
+    </div>
+    <div class="field span-2" data-show-when="audience=department">
+      {% set do = [] %}{% for d in departments %}{% set _ = do.append((d.public_id, d.name)) %}{% endfor %}
+      {{ ui.select('department', do, 'Department or ministry', v.get('department', '')) }}
+    </div>
+    <div class="field span-2" data-show-when="audience=gender">{{ ui.select('gender', [('male', 'Men'), ('female', 'Women')], 'Group', v.get('gender', 'male')) }}</div>
+    <div class="field span-2" data-show-when="audience=age">{{ ui.select('age', [('children', 'Children (0–12)'), ('youth', 'Youth (13–35)'), ('adults', 'Adults (18+)'), ('seniors', 'Seniors (60+)')], 'Age group', v.get('age', 'youth')) }}</div>
+    <div class="field span-2" data-show-when="audience=event">
+      {% set eo = [] %}{% for e in events %}{% set _ = eo.append((e.public_id, e.title ~ ' · ' ~ e.starts_at.strftime('%d %b'))) %}{% endfor %}
+      {{ ui.select('event', eo, 'Event', v.get('event', '')) }}
+    </div>
+    <div class="field span-2" data-show-when="audience=numbers"><label class="label" for="f-numbers">Phone numbers or emails</label><textarea class="textarea" id="f-numbers" name="numbers" placeholder="0244123456, 0201234567">{{ v.get('numbers', '') }}</textarea><div class="help">Separate with commas or new lines.</div></div>
+  </div>
+  {% endcall %}
+  {% call ui.card('Message') %}
+  <div class="form-grid">
+    <div class="field span-2" data-show-when="channel=email">{{ ui.input('subject', 'Subject', v.get('subject', '')) }}</div>
+    <div class="field span-2"><label class="label" for="f-body">Message</label><textarea class="textarea" id="f-body" name="body" data-count="#sms-count" required>{{ v.get('body', '') }}</textarea>
+      <div class="help"><span id="sms-count"></span>. You can use {% for p in placeholders %}<code>{{ '{' ~ p ~ '}' }}</code>{{ ', ' if not loop.last }}{% endfor %}.</div></div>
+    <div class="field span-2">
+      <span class="label">When</span>
+      <div class="cluster"><label class="check"><input type="radio" name="when" value="now"{% if v.get('when', 'now') != 'later' %} checked{% endif %}> Send now</label><label class="check"><input type="radio" name="when" value="later"{% if v.get('when') == 'later' %} checked{% endif %}> Schedule</label></div>
+    </div>
+    <div class="field" data-show-when="when=later">{{ ui.input('send_date', 'Date', v.get('send_date', today.isoformat()), 'date') }}</div>
+    <div class="field" data-show-when="when=later">{{ ui.input('send_time', 'Time', v.get('send_time', '08:00'), 'time') }}</div>
+  </div>
+  {% endcall %}
+  {% if preview %}
+  {% call ui.card('Preview') %}
+    <p><strong>{{ preview.count }}</strong> {{ 'person' if preview.count == 1 else 'people' }} · {{ preview.label }}{% if preview.segments %} · {{ preview.segments }} SMS part{{ 's' if preview.segments != 1 }} each ({{ preview.segments * preview.count }} in total){% endif %}.</p>
+    <div class="message-bubble pre-wrap">{{ preview.sample }}</div>
+  {% endcall %}
+  {% endif %}
+  <div class="form-actions">
+    <a class="btn" href="{{ url_for('communication.index') }}">Cancel</a>
+    <button class="btn" type="submit" name="action" value="preview">{{ icon('eye', 17) }}<span>Preview</span></button>
+    <button class="btn btn-primary" type="submit" name="action" value="send">{{ icon('send', 17) }}<span>Send</span></button>
+  </div>
+</form>
+{% endblock %}

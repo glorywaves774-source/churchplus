@@ -1,0 +1,24 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Departments and ministries{% endblock %}
+{% block content %}
+{% call ui.page_header('Departments and ministries', (rows|length) ~ ' in ' ~ g.tenant.name) %}
+  {% if can('departments.create') %}{{ ui.button('New department', 'plus', 'primary', href=url_for('departments.create')) }}{% endif %}
+{% endcall %}
+<div class="cluster mb-4">
+  <a class="chip" href="{{ url_for('departments.index') }}" aria-pressed="{{ 'true' if not kind else 'false' }}">All</a>
+  <a class="chip" href="{{ url_for('departments.index', kind='ministry') }}" aria-pressed="{{ 'true' if kind == 'ministry' else 'false' }}">Ministries</a>
+  <a class="chip" href="{{ url_for('departments.index', kind='department') }}" aria-pressed="{{ 'true' if kind == 'department' else 'false' }}">Departments</a>
+</div>
+{% if rows %}
+<div class="grid grid-3">
+  {% for d in rows %}
+  <a class="card stat-card" href="{{ url_for('departments.detail', public_id=d.public_id) }}">
+    <div class="stat-top"><span class="stat-label">{{ d.kind.value|capitalize }}{% if not d.is_active %} · inactive{% endif %}</span><span class="stat-icon">{{ icon('network', 18) }}</span></div>
+    <div class="stat-value dept-name">{{ d.name }}</div>
+    <div class="stat-meta"><span>{{ sizes.get(d.id, 0) }} member{{ '' if sizes.get(d.id, 0) == 1 else 's' }}</span>{% if d.leader %}<span translate="no">· Led by {{ d.leader.display_name }}</span>{% endif %}</div>
+  </a>
+  {% endfor %}
+</div>
+{% else %}<section class="card">{{ ui.empty_state('No departments', 'Create your ministries and departments.', 'network') }}</section>{% endif %}
+{% endblock %}

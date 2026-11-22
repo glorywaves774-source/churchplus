@@ -1,0 +1,39 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Reconcile {{ rec.account.name }}{% endblock %}
+{% block content %}
+{{ ui.page_header(rec.account.name, 'Statement of ' ~ rec.statement_date.strftime('%d %B %Y') ~ ' · tick every line that appears on the statement.') }}
+<div class="grid grid-stats mb-4">
+  {{ ui.stat_card('Statement balance', st.statement_balance|money, 'file-text') }}
+  {{ ui.stat_card('Cleared in books', st.cleared_balance|money, 'check-circle-2', 'success') }}
+  {{ ui.stat_card('Difference', st.difference|money, 'scale', 'success' if st.difference == 0 else 'danger') }}
+  {{ ui.stat_card('Book balance', st.book_balance|money, 'book', 'info', note='at the statement date') }}
+</div>
+<form method="post">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <section class="card">
+    {% if lines %}
+    <div class="table-wrap"><table class="table register-table">
+      <thead><tr><th class="col-center">Cleared</th><th>Date</th><th>Journal</th><th>Description</th><th class="col-num">In</th><th class="col-num">Out</th></tr></thead>
+      <tbody>{% for l in lines %}<tr>
+        <td class="col-center"><input class="perm-box" type="checkbox" name="cleared" value="{{ l.id }}" aria-label="Cleared"{% if l.reconciliation_id == rec.id %} checked{% endif %}{% if rec.status.value == 'completed' %} disabled{% endif %}></td>
+        <td class="nowrap">{{ l.entry.entry_date.strftime('%d %b %Y') }}</td>
+        <td class="nowrap">{{ l.entry.number }}</td>
+        <td class="wrap">{{ l.entry.description }}</td>
+        <td class="num">{{ l.debit|money(plain=True) if l.debit else '' }}</td>
+        <td class="num">{{ l.credit|money(plain=True) if l.credit else '' }}</td>
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% else %}{{ ui.empty_state('No uncleared transactions up to the statement date', icon_name='check-circle-2') }}{% endif %}
+    {% if rec.status.value == 'in_progress' and can('accounting.create') %}
+    <div class="card-footer">
+      <span class="help">Save as you go. Complete when the difference is zero.</span>
+      <div class="cluster">
+        <button class="btn" type="submit">{{ icon('save', 17) }}<span>Save progress</span></button>
+        <button class="btn btn-primary" type="submit" name="complete" value="1">{{ icon('check', 17) }}<span>Complete</span></button>
+      </div>
+    </div>
+    {% endif %}
+  </section>
+</form>
+{% endblock %}

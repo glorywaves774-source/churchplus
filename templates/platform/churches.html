@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}Churches{% endblock %}
+{% block content %}
+{{ ui.page_header('Churches', rows|length ~ ' shown') }}
+<section class="card">
+  {% set so = [] %}{% for s in statuses %}{% set _ = so.append((s.value, s.value|capitalize)) %}{% endfor %}
+  {{ ui.filter_bar(url_for('platform.churches'), q, 'Search name, town or address', [('status', 'Status', so, status)]) }}
+  {% if rows %}
+  <div class="table-wrap"><table class="table" data-sortable>
+    <thead><tr><th>Church</th><th>Status</th><th>Plan</th><th>Subscription</th><th class="col-num">Members</th><th>Joined</th></tr></thead>
+    <tbody>{% for t in rows %}{% set s = subs.get(t.id) %}<tr>
+      <td class="wrap"><a class="person-name" href="{{ url_for('platform.church', public_id=t.public_id) }}" translate="no">{{ t.name }}</a><div class="person-sub">{{ t.city or '' }}{% if t.parent_tenant_id %} · member church{% endif %}</div></td>
+      <td>{{ ui.badge(t.status.value, {'active': 'success', 'trial': 'info', 'pending': 'warning', 'suspended': 'danger', 'cancelled': ''}[t.status.value]) }}</td>
+      <td class="nowrap">{{ s.plan.name if s else '—' }}</td>
+      <td class="nowrap">{{ s.status.value.replace('_', ' ') if s else '—' }}</td>
+      <td class="num">{{ members.get(t.id, 0) }}</td>
+      <td class="nowrap" data-value="{{ t.created_at.isoformat() }}">{{ t.created_at|localtime('%d %b %Y') }}</td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}{{ ui.empty_state('No churches found', icon_name='church') }}{% endif %}
+</section>
+{% endblock %}

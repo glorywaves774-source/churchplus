@@ -1,0 +1,18 @@
+{% extends "layouts/public.html" %}
+{% block title %}I'm new · {{ g.site.name }}{% endblock %}
+{% block content %}
+<h1 class="site-title">Welcome! We're glad you came</h1>
+<p class="site-sub">Tell us a little about yourself and someone will get in touch.</p>
+<form method="post" class="card site-form stack" novalidate>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <div class="hp" aria-hidden="true"><label>Leave empty <input name="website_url" tabindex="-1" autocomplete="off"></label></div>
+  {{ ui.input('first_name', 'First name', required=True) }}
+  {{ ui.input('last_name', 'Last name', required=True) }}
+  {{ ui.input('phone', 'Phone', type='tel') }}
+  {{ ui.input('email', 'Email', type='email') }}
+  <label class="check"><input type="checkbox" name="wants_visit" value="y"> I'd welcome a visit or call</label>
+  <label class="check"><input type="checkbox" name="wants_membership" value="y"> I'd like to become a member</label>
+  <div class="field"><label class="label" for="f-prayer_request">Anything we can pray about? (optional)</label><textarea class="textarea" id="f-prayer_request" name="prayer_request"></textarea></div>
+  <button class="btn btn-primary" type="submit">{{ icon('send', 16) }}<span>Send</span></button>
+</form>
+{% endblock %}

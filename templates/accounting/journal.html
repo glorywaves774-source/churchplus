@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% block title %}{{ e.number }}{% endblock %}
+{% block content %}
+{% call ui.page_header('Journal ' ~ e.number, e.entry_date.strftime('%d %B %Y') ~ ' · ' ~ e.description) %}
+  <button class="btn" type="button" data-print>{{ icon('printer', 17) }}<span>Print</span></button>
+{% endcall %}
+<div class="grid grid-main-side">
+  {% call ui.card(flush=True) %}
+    <div class="table-wrap"><table class="table">
+      <thead><tr><th>Account</th><th>Memo</th><th class="col-num">Debit</th><th class="col-num">Credit</th></tr></thead>
+      <tbody>{% for l in e.lines %}<tr>
+        <td class="wrap"><a href="{{ url_for('accounting.account_ledger', account=l.account.public_id) }}">{{ l.account.code }} · {{ l.account.name }}</a>{% if l.branch %}<div class="person-sub" translate="no">{{ l.branch.name }}</div>{% endif %}</td>
+        <td class="wrap">{{ l.memo or '' }}</td>
+        <td class="num">{{ l.debit|money(plain=True) if l.debit else '' }}</td>
+        <td class="num">{{ l.credit|money(plain=True) if l.credit else '' }}</td>
+      </tr>{% endfor %}</tbody>
+      <tfoot><tr class="total-row"><td colspan="2">Total</td><td class="num">{{ e.total|money(plain=True) }}</td><td class="num">{{ e.total|money(plain=True) }}</td></tr></tfoot>
+    </table></div>
+  {% endcall %}
+  <div class="stack">
+    {% call ui.card() %}
+      <dl class="kv">
+        <dt>Status</dt><dd>{{ ui.badge('Reversed' if e.status.value == 'void' else 'Posted', '' if e.status.value == 'void' else 'success') }}</dd>
+        <dt>Source</dt><dd>{{ e.source.value|capitalize }}</dd>
+        {% if e.reference %}<dt>Reference</dt><dd>{{ e.reference }}</dd>{% endif %}
+        {% for id, r in related.items() %}<dt>{{ 'Reverses' if id == e.reversal_of_id else 'Reversed by' }}</dt><dd><a href="{{ url_for('accounting.journal', public_id=r.public_id) }}">{{ r.number }}</a></dd>{% endfor %}
+        <dt>Recorded</dt><dd>{{ e.created_at.strftime('%d %b %Y, %H:%M') }}</dd>
+      </dl>
+    {% endcall %}
+    {% if can('accounting.edit') and e.status.value == 'posted' and not e.reversal_of_id and e.source.value in ('manual', 'opening', 'transfer') %}
+    {% call ui.card('Reverse this entry', 'Posted entries are never edited. A reversing entry cancels it.') %}
+      <form method="post" action="{{ url_for('accounting.reverse_journal', public_id=e.public_id) }}" class="stack" data-confirm="Post a reversing entry for {{ e.number }}?" data-confirm-action="Reverse">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">{{ ui.input('reason', 'Reason', required=True) }}
+        <button class="btn btn-sm" type="submit">{{ icon('repeat', 15) }}<span>Reverse</span></button>
+      </form>
+    {% endcall %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
