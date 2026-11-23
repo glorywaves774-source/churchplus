@@ -52,6 +52,8 @@ def platform_admin(db, client, email="boss@kayron.test", role=PlatformRole.SUPER
     ({"STORAGE_BACKEND": "s3"}, "S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY are not set"),
     ({**S3, "S3_SECRET_ACCESS_KEY": None}, "S3_SECRET_ACCESS_KEY is not set"),
     ({**S3, "S3_ENDPOINT_URL": "abc.r2.cloudflarestorage.com"}, "must start with https://"),
+    ({**S3, "S3_ENDPOINT_URL": "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"}, "still contains a placeholder"),
+    ({**S3, "S3_ENDPOINT_URL": "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com"}, None),
     (S3, None),
 ])
 def test_settings_are_checked_in_plain_words(cfg, expected):

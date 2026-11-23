@@ -13,7 +13,9 @@ keys had been entered. Now:
 * `/healthz` reports the storage state.
 * Keys pasted with stray spaces or line breaks are cleaned. Cloudflare R2, Backblaze B2 and other
   S3-compatible services work out of the box (region `auto`, compatible checksums).
-* 14 new tests (392 in total), including real S3 calls against an S3 emulator.
+* An S3_ENDPOINT_URL that still holds a placeholder such as `<ACCOUNT_ID>` is caught and
+  explained (the platform console and the log say exactly what to paste).
+* 16 new tests (394 in total), including real S3 calls against an S3 emulator.
 
 
 ## 1.2.1 – Photos from any phone can be stored

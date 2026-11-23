@@ -14,6 +14,7 @@ Backends
 from __future__ import annotations
 
 import io
+import re
 import os
 import uuid
 from dataclasses import dataclass
@@ -124,8 +125,14 @@ def config_problem(cfg) -> str | None:
         if missing:
             return "S3 storage is switched on but " + ", ".join(missing) + (" is" if len(missing) == 1 else " are") + " not set."
         endpoint = cfg.get("S3_ENDPOINT_URL")
-        if endpoint and not endpoint.startswith("https://"):
-            return "S3_ENDPOINT_URL must start with https://"
+        if endpoint:
+            from urllib.parse import urlparse
+            host = urlparse(endpoint).hostname or ""
+            if not endpoint.startswith("https://"):
+                return "S3_ENDPOINT_URL must start with https://"
+            if "<" in endpoint or ">" in endpoint or "ACCOUNT_ID" in endpoint.upper() or not re.fullmatch(r"[A-Za-z0-9.-]+", host):
+                return ("S3_ENDPOINT_URL still contains a placeholder or is not a valid address. For Cloudflare R2 it is "
+                        "https://<your 32-character account ID>.r2.cloudflarestorage.com, copied from the R2 overview page.")
         return None
     if cfg.get("ENV_NAME") == "production" and not os.environ.get("LOCAL_STORAGE_PATH"):
         return ("Files are kept on the server's temporary disk, which Render wipes on every deploy. "
@@ -150,6 +157,8 @@ def explain_error(exc: Exception) -> str:
         return "The keys work but are not allowed to use this bucket. Give them read and write access to it."
     if "EndpointConnectionError" in text or "Could not connect" in text or "ConnectTimeout" in text:
         return "The storage service could not be reached. Check S3_ENDPOINT_URL (and S3_REGION for AWS)."
+    if "Invalid endpoint" in text:
+        return "S3_ENDPOINT_URL is not a valid address. Copy the S3 API address from the R2 overview page."
     if "PermanentRedirect" in text or "AuthorizationHeaderMalformed" in text:
         return "The region is wrong for this bucket. Set S3_REGION to the bucket's region (use auto for Cloudflare R2)."
     return f"Storage error: {type(exc).__name__}{(' ' + code) if code else ''}."
