@@ -32,7 +32,7 @@ def normalise_database_url(url: str | None) -> str | None:
 class BaseConfig:
     APP_NAME = "ChurchPlus"
     COMPANY_NAME = "Kayron Global Tech Services"
-    APP_VERSION = "1.2.2"  # storage setup
+    APP_VERSION = "1.2.3"  # remove photo
 
     SECRET_KEY = os.environ.get("SECRET_KEY")
 

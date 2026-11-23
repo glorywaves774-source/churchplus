@@ -116,3 +116,21 @@ def test_heic_document_and_logo_are_converted(app, client, db, grace, abena):
 def test_photo_fields_offer_every_phone_picture(client, db, grace, abena):
     html = client.get(f"/members/{abena}").get_data(as_text=True)
     assert 'accept="image/*,.heic,.heif"' in html
+
+
+def test_remove_photo_button_is_ready_and_removes(app, client, db, grace, abena):
+    """The Remove button is always on the page (hidden until there is a photo) so it can appear
+    straight after a camera save, and removing deletes the photo."""
+    html = client.get(f"/members/{abena}").get_data(as_text=True)
+    assert 'data-photo-remove="#member-photo"' in html and "photo/remove" in html
+    upload(client, f"/members/{abena}/photo", picture("JPEG", (800, 1000)), name="p.jpg")
+    key = member(db, grace, public_id=abena).photo_key
+    html = client.get(f"/members/{abena}").get_data(as_text=True)
+    form = html[html.index('data-photo-remove="#member-photo"'):][:400]
+    assert " hidden" not in form.split(">")[0]
+    res = client.post(f"/members/{abena}/photo/remove")
+    assert res.status_code == 302 and member(db, grace, public_id=abena).photo_key is None
+    with tenant_context(grace):
+        import pytest as _pt
+        with _pt.raises(Exception):
+            storage.open_file(key)

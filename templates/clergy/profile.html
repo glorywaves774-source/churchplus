@@ -32,7 +32,12 @@
       </label>
       <noscript><button class="btn btn-sm" type="submit">Save</button></noscript>
     </form>
-    {% if photo_url %}{{ ui.confirm_button(url_for('clergy.remove_photo', public_id=staff.public_id), 'Remove photo', 'This deletes the photo of ' ~ staff.display_name ~ ' from ChurchPlus.', 'Remove photo', 'trash-2', 'ghost', 'sm', 'Remove photo?') }}{% endif %}
+    <form method="post" action="{{ url_for('clergy.remove_photo', public_id=staff.public_id) }}" data-photo-remove="#staff-photo"
+          data-confirm="This deletes the photo of {{ staff.display_name }} from ChurchPlus." data-confirm-action="Remove photo"
+          data-confirm-title="Remove photo?"{% if not photo_url %} hidden{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn">{{ icon('trash-2', 17) }}<span>Remove photo</span></button>
+    </form>
   </div>
   {% endif %}
 </section>

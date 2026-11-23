@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.3 – Removing a photo is easy to find
+* **Remove photo** now sits right next to **Take photo with camera** on member and clergy/staff
+  records, as a normal button (it was a small grey link at the bottom of the photo box).
+* It appears as soon as a photo is saved with the camera. Before, it only showed after
+  reloading the page.
+
+
 ## 1.2.2 – File storage set-up made clear
 
 Photos couldn't be stored on the live site because S3 storage was switched on but no bucket or

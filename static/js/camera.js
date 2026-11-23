@@ -236,6 +236,10 @@
       if (el.id) { img.id = el.id; }
       el.parentNode.replaceChild(img, el);
     });
+    // Show the "Remove photo" button for this person now that they have a photo.
+    if (sel) {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-photo-remove="' + sel + '"]'), function (f) { f.hidden = false; });
+    }
     var card = current.button.closest("[data-photo-card]");
     if (card) {
       card.setAttribute("data-photo-done", "");

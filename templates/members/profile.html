@@ -72,16 +72,20 @@
   <div class="grid grid-3 mt-4">
     {% call ui.card('Passport photograph', id='photo') %}
       <div class="stack">
-        <div class="photo-actions">
+        <div class="photo-actions cluster">
           {{ cam.camera_button(url_for('members.upload_photo', public_id=member.public_id), member.display_name, '#member-photo', 'Take photo with camera', 'primary') }}
+          {# Always on the page (hidden while there is no photo) so it appears as soon as a photo is saved. #}
+          <form method="post" action="{{ url_for('members.remove_photo', public_id=member.public_id) }}" data-photo-remove="#member-photo"
+                data-confirm="This deletes {{ member.display_name }}'s photo from ChurchPlus. You can take a new one at any time."
+                data-confirm-action="Remove photo" data-confirm-title="Remove photo?"{% if not member.photo_key %} hidden{% endif %}>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn">{{ icon('trash-2', 17) }}<span>Remove photo</span></button>
+          </form>
         </div>
         <form method="post" action="{{ url_for('members.upload_photo', public_id=member.public_id) }}" enctype="multipart/form-data" class="stack">
           {{ photo_form.csrf_token }}{{ ui.field(photo_form.photo) }}
           <button class="btn" type="submit">{{ icon('cloud-upload', 17) }}<span>Upload photo</span></button>
         </form>
-        {% if member.photo_key %}
-          {{ ui.confirm_button(url_for('members.remove_photo', public_id=member.public_id), 'Remove photo', 'This deletes ' ~ member.display_name ~ "'s photo from ChurchPlus. You can take a new one at any time.", 'Remove photo', 'trash-2', 'ghost', 'sm', 'Remove photo?') }}
-        {% endif %}
       </div>
     {% endcall %}
     {% call ui.card('Change status', id='status') %}
