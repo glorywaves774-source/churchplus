@@ -154,7 +154,13 @@ def save(file_storage_or_bytes, *, filename: str, kind: str, category: str,
     ext = validate_upload(filename, bytes(data), kind)
     safe_category = "".join(ch for ch in category.lower() if ch.isalnum() or ch in "-_") or "files"
     key = f"{_tenant_prefix(tenant_id)}{safe_category}/{uuid.uuid4().hex}.{ext}"
-    backend().put(key, bytes(data), content_type)
+    try:
+        backend().put(key, bytes(data), content_type)
+    except StorageError:
+        raise
+    except Exception as exc:   # e.g. cloud storage unreachable or not configured
+        current_app.logger.exception("Storing a file failed (%s)", safe_category)
+        raise StorageError("The file couldn't be stored right now. Please try again in a few minutes.") from exc
     return StoredFile(key=key, size=len(data), content_type=content_type, original_name=filename)
 
 

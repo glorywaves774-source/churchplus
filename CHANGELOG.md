@@ -39,10 +39,12 @@ saved straight onto each person's record, with no separate app and no file trans
   * Every new or removed photo is recorded in the audit trail, including whether it came from
     the camera or a file.
 * After a retake, new photos show immediately, while unchanged photos load faster.
+* If file storage can't be reached, saving a photo or document now shows a clear "try again in a
+  few minutes" message instead of an error page.
 
 ### Behind the scenes
 * Pillow (the image library) is now listed in `requirements.txt`, so Render installs it.
-* 27 new automated tests (367 in total) on SQLite and PostgreSQL.
+* 28 new automated tests (368 in total) on SQLite and PostgreSQL.
 * The camera was checked in a browser with a test camera at 320–440px phone widths, on a tablet
   and on a computer, in light and dark mode, and with the keyboard open.
 

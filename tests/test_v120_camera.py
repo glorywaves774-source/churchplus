@@ -332,3 +332,17 @@ def test_pillow_is_a_listed_requirement():
     from pathlib import Path
     reqs = (Path(__file__).resolve().parent.parent / "requirements.txt").read_text()
     assert re.search(r"^Pillow>=", reqs, re.M)
+
+
+def test_storage_outage_gives_a_clear_message(app, client, db, grace, monkeypatch):
+    from app.services import storage as storage_mod
+    new_member(client)
+    p = pid(db, grace, first_name="Abena")
+
+    class Down:
+        def put(self, *a, **k):
+            raise ConnectionError("cloud storage unreachable")
+    monkeypatch.setattr(storage_mod, "backend", lambda: Down())
+    res = upload(client, f"/members/{p}/photo", jpeg())
+    assert res.status_code == 400 and "couldn't be stored right now" in res.get_json()["message"]
+    assert member(db, grace, public_id=p).photo_key is None
