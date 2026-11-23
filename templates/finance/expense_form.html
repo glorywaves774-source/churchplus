@@ -16,7 +16,7 @@
     <div class="field"><label class="label" for="f-department">Department (for department budgets)</label><select class="select" id="f-department" name="department"><option value="">None</option>{% for d in departments %}<option value="{{ d.public_id }}"{% if form.get('department') == d.public_id %} selected{% endif %}>{{ d.name }}</option>{% endfor %}</select></div>
     <div class="field"><label class="label" for="f-event">Event (for event budgets)</label><select class="select" id="f-event" name="event"><option value="">None</option>{% for ev in events %}<option value="{{ ev.public_id }}"{% if form.get('event') == ev.public_id %} selected{% endif %}>{{ ev.title }} – {{ ev.starts_at.strftime('%d %b %Y') }}</option>{% endfor %}</select></div>
     {% if branches|length > 1 %}<div class="field"><label class="label" for="f-branch">Branch</label><select class="select" id="f-branch" name="branch"><option value="">Whole church</option>{% for b in branches %}<option value="{{ b.public_id }}">{{ b.name }}</option>{% endfor %}</select></div>{% endif %}
-    <div class="field span-2"><span class="label">Invoice or receipt (optional)</span><div class="upload-drop">{{ icon('paperclip', 20) }}<input type="file" name="attachment" accept=".pdf,.jpg,.jpeg,.png,.docx" aria-label="Attachment"></div></div>
+    <div class="field span-2"><span class="label">Invoice or receipt (optional)</span><div class="upload-drop">{{ icon('paperclip', 20) }}<input type="file" name="attachment" accept=".pdf,.docx,image/*,.heic,.heif" aria-label="Attachment"></div></div>
   </div>
   {% endcall %}
   <div class="form-actions">

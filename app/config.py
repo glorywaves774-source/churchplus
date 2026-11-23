@@ -32,7 +32,7 @@ def normalise_database_url(url: str | None) -> str | None:
 class BaseConfig:
     APP_NAME = "ChurchPlus"
     COMPANY_NAME = "Kayron Global Tech Services"
-    APP_VERSION = "1.2.0"  # Aurora UI + camera
+    APP_VERSION = "1.2.1"  # phone photos
 
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
@@ -53,7 +53,7 @@ class BaseConfig:
     WTF_CSRF_TIME_LIMIT = 60 * 60 * 4
 
     # Uploads
-    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "10")) * 1024 * 1024
+    MAX_CONTENT_LENGTH = int(os.environ.get("MAX_UPLOAD_MB", "25")) * 1024 * 1024   # photos are shrunk before saving
     STORAGE_BACKEND = os.environ.get("STORAGE_BACKEND", "local")  # local | s3
     LOCAL_STORAGE_PATH = os.environ.get(
         "LOCAL_STORAGE_PATH", str(BASE_DIR / "instance" / "private_uploads")

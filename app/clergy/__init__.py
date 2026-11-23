@@ -64,7 +64,9 @@ class RecordForm(FlaskForm):
     title = StringField("Title", validators=[DataRequired(), Length(max=160)], description="e.g. Promoted to Senior Associate Pastor")
     details = TextAreaField("Details", validators=[Optional(), Length(max=4000)])
     rating = SelectField("Rating (appraisals)", choices=[("", "—")] + [(str(i), str(i)) for i in range(1, 6)], validators=[Optional()])
-    file = FileField("Attachment", validators=[FileAllowed(["pdf", "jpg", "jpeg", "png", "docx"], "PDF, JPG, PNG or DOCX only.")])
+    file = FileField("Attachment", validators=[FileAllowed(["pdf", "jpg", "jpeg", "png", "docx", "heic", "heif", "webp"],
+                                                                         "PDF, Word or a photo only.")],
+                     render_kw={"accept": ".pdf,.docx,image/*,.heic,.heif"})
 
 
 class LeaveForm(FlaskForm):

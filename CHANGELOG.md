@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.2.1 – Photos from any phone can be stored
+
+**Fixed** – some photos taken on phones could not be saved:
+* **iPhone photos (HEIC/HEIF)** were refused ("JPG, PNG or WEBP only"). They are now accepted
+  and converted to JPEG: with *Choose file*, in the camera window, on the plain upload form,
+  for leaders, documents, receipts, sermon media and the church logo. If a browser can't preview
+  an iPhone photo (Chrome on Android or Windows), the camera window still saves it and ChurchPlus
+  converts it.
+* **Full-size camera photos** (often 10–15 MB) were over the 10 MB limit. The limit is now 25 MB
+  and photos are still shrunk before they are stored (a 14 MB photo is saved at 1200 px).
+  A file that is still too large now gives a clear message on the same page instead of an error page.
+* **Photos with no file extension** (some Android camera apps call them just "image") were
+  refused. A photo is now recognised by its content, not its name. Anything that isn't a picture
+  is still refused.
+
+10 new automated tests (378 in total). Pillow-HEIF is added to `requirements.txt` so Render
+installs the iPhone photo reader.
+
+
 ## 1.2.0 – Camera for member and leader photos
 
 ChurchPlus now has its own camera for taking passport photos of members and leaders. Photos are

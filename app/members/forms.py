@@ -59,7 +59,8 @@ class MemberForm(FlaskForm):
 
 class PhotoForm(FlaskForm):
     photo = FileField("Passport photograph", validators=[FileRequired("Choose a photo."),
-                                                        FileAllowed(["jpg", "jpeg", "png", "webp"], "JPG, PNG or WEBP only.")])
+                                                        ],
+                      render_kw={"accept": "image/*,.heic,.heif"})   # any phone picture; the server reads it
 
 
 DOC_CATEGORIES = [("baptism", "Baptism certificate"), ("marriage", "Marriage certificate"),
@@ -71,7 +72,8 @@ class DocumentForm(FlaskForm):
     title = StringField("Document title", validators=[DataRequired(), Length(max=160)])
     category = SelectField("Type", choices=DOC_CATEGORIES)
     file = FileField("File", validators=[FileRequired("Choose a file."),
-                                         FileAllowed(["pdf", "jpg", "jpeg", "png", "docx"], "PDF, JPG, PNG or DOCX only.")])
+                                         FileAllowed(["pdf", "jpg", "jpeg", "png", "docx", "heic", "heif", "webp"], "PDF, Word or a photo only.")],
+                      render_kw={"accept": ".pdf,.docx,image/*,.heic,.heif"})
 
 
 class StatusForm(FlaskForm):

@@ -45,7 +45,8 @@ class ChurchProfileForm(FlaskForm):
 
 class LogoForm(FlaskForm):
     logo = FileField("Church logo", validators=[DataRequired("Choose an image."),
-                                               FileAllowed(["png", "jpg", "jpeg", "webp"], "PNG, JPG or WEBP only.")])
+                                               FileAllowed(["png", "jpg", "jpeg", "webp", "heic", "heif"], "A PNG, JPG or phone photo only.")],
+                     render_kw={"accept": "image/*,.heic,.heif"})
 
 
 class BranchForm(FlaskForm):

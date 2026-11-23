@@ -15,7 +15,8 @@ from app.utils.context import permission_required
 bp = Blueprint("sermons", __name__)
 KIND_BY_EXT = {"mp3": MediaKind.AUDIO, "m4a": MediaKind.AUDIO, "wav": MediaKind.AUDIO, "mp4": MediaKind.VIDEO,
                "webm": MediaKind.VIDEO, "pdf": MediaKind.DOCUMENT, "docx": MediaKind.DOCUMENT,
-               "jpg": MediaKind.IMAGE, "jpeg": MediaKind.IMAGE, "png": MediaKind.IMAGE, "webp": MediaKind.IMAGE}
+               "jpg": MediaKind.IMAGE, "jpeg": MediaKind.IMAGE, "png": MediaKind.IMAGE, "webp": MediaKind.IMAGE,
+               "heic": MediaKind.IMAGE, "heif": MediaKind.IMAGE}
 STORAGE_KIND = {MediaKind.AUDIO: "audio", MediaKind.VIDEO: "video", MediaKind.DOCUMENT: "document", MediaKind.IMAGE: "image"}
 
 

@@ -186,7 +186,8 @@
 
   function fromFile(file) {
     if (!file) { return; }
-    if (!/^image\//.test(file.type)) { setTip("Choose a photo (JPG, PNG or WEBP).", true); return; }
+    var heic = /\.(heic|heif)$/i.test(file.name || "") || /hei[cf]/i.test(file.type);
+    if (file.type && !/^image\//.test(file.type) && !heic) { setTip("Choose a photo from the camera or gallery.", true); return; }
     var url = URL.createObjectURL(file);
     var img = new Image();
     img.onload = function () {
@@ -196,7 +197,20 @@
     };
     img.onerror = function () {
       URL.revokeObjectURL(url);
-      setTip("That file couldn't be opened as a photo. Try a JPG or PNG.", true);
+      // This browser can't show the picture (e.g. an iPhone HEIC photo on Android or Windows).
+      // Send it as it is: ChurchPlus converts it, turns it upright and shrinks it on the server.
+      clearPhoto();
+      blob = file;
+      source = "upload";
+      still.hidden = true;
+      video.hidden = true;
+      guide.hidden = true;
+      msg.hidden = true;
+      setTip("This photo can't be previewed on this device, but it can still be saved. ChurchPlus will convert it.");
+      consent.checked = false;
+      saveBtn.disabled = true;
+      step("review");
+      consent.focus();
     };
     img.src = url;
   }
@@ -238,11 +252,11 @@
     var data = new FormData();
     data.append("csrf_token", dlg.getAttribute("data-csrf"));
     data.append("source", source);
-    data.append("photo", blob, "photo.jpg");
+    data.append("photo", blob, blob.name || "photo.jpg");
     fetch(current.upload, { method: "POST", body: data, credentials: "same-origin", headers: { "Accept": "application/json" } })
       .then(function (r) {
         return r.json().catch(function () {
-          return { ok: false, message: r.status === 413 ? "That photo is too large." : "The photo couldn't be saved. Try again." };
+          return { ok: false, message: r.status === 413 ? "That photo is too large. Try a smaller one." : "The photo couldn't be saved. Try again." };
         });
       })
       .then(function (res) {

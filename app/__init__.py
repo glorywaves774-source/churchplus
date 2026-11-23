@@ -220,7 +220,16 @@ def _register_error_handlers(app: Flask) -> None:
 
     @app.errorhandler(413)
     def too_large(e):
-        return _render(413, "File too large", "The file is larger than the allowed upload size.")
+        limit = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+        message = f"That file is larger than {limit} MB. Please choose a smaller file."
+        if "application/json" in request.headers.get("Accept", ""):
+            return jsonify({"ok": False, "message": message, "photo_url": None}), 413
+        ref = request.referrer or ""
+        if request.method == "POST" and ref.startswith(request.host_url):
+            from flask import flash, redirect
+            flash(message, "danger")          # back to the same page instead of a dead end
+            return redirect(ref)
+        return _render(413, "File too large", message)
 
     @app.errorhandler(429)
     def rate_limited(e):

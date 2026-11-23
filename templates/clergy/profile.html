@@ -28,7 +28,7 @@
     <form method="post" action="{{ url_for('clergy.upload_photo', public_id=staff.public_id) }}" enctype="multipart/form-data" class="cluster" data-photo-upload>
       {{ photo_form.csrf_token }}
       <label class="btn">{{ icon('cloud-upload', 17) }}<span>Upload photo</span>
-        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="sr-only" required data-auto-submit>
+        <input type="file" name="photo" accept="image/*,.heic,.heif" class="sr-only" required data-auto-submit>
       </label>
       <noscript><button class="btn btn-sm" type="submit">Save</button></noscript>
     </form>

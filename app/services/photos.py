@@ -8,6 +8,9 @@ it is stored:
 * re-saved as a fresh JPEG, which drops all hidden details such as GPS location, the phone
   model and the time it was taken.
 
+Any picture a phone produces is accepted – including iPhone HEIC photos and files without an
+extension – because the picture is read by its content, not its name.
+
 One person has one photo: a clergy or staff record that is linked to a member record shares the
 member's photo, so the two never drift apart.
 """
@@ -19,7 +22,7 @@ from dataclasses import dataclass
 from flask import url_for
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from app.services import storage
+from app.services import images, storage  # images registers the iPhone HEIC/HEIF reader
 from app.services.storage import StorageError
 
 MAX_SIDE = 1200
@@ -56,7 +59,13 @@ def normalise(data: bytes) -> bytes:
 def store(file_storage, *, category: str) -> storage.StoredFile:
     """Check, clean and store an uploaded photo for the active church."""
     raw = file_storage.read()
-    storage.validate_upload(file_storage.filename or "photo.jpg", raw, "image")
+    # The picture itself decides whether it is a photo (not its file name), so iPhone HEIC photos
+    # and files with no extension are accepted; normalise() refuses anything that isn't a picture.
+    if not raw:
+        raise StorageError("The file is empty.")
+    limit = storage.current_app.config["MAX_CONTENT_LENGTH"]
+    if len(raw) > limit:
+        raise StorageError(f"That photo is larger than {limit // (1024 * 1024)} MB. Try a smaller one.")
     return storage.save(normalise(raw), filename="photo.jpg", kind="image", category=category,
                         content_type="image/jpeg")
 

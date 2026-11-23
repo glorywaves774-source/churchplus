@@ -145,12 +145,34 @@ def backend():
     return LocalStorage(root)
 
 
+def _convert_phone_picture(data: bytes, filename: str, kind: str, category: str):
+    """A picture in a format we don't keep (iPhone HEIC, no extension…) becomes a JPEG/PNG.
+    Returns (data, filename, content_type), or None to store the file unchanged."""
+    from app.services import images
+    ext = _extension(filename or "")
+    if kind not in ("image", "document") or ext in ALLOWED[kind] or not data or not images.looks_like_image(data):
+        return None
+    limit = current_app.config["MAX_CONTENT_LENGTH"]
+    if len(data) > limit:
+        raise StorageError(f"The file is larger than {limit // (1024 * 1024)} MB.")
+    try:
+        out, new_ext, ctype = images.normalize(data, max_side=800 if category == "branding" else 2400,
+                                               allow_transparency=category == "branding")
+    except images.ImageError as exc:
+        raise StorageError(str(exc)) from exc
+    stem = filename.rsplit(".", 1)[0] if "." in (filename or "") else (filename or "photo")
+    return out, f"{stem}.{new_ext}", ctype
+
+
 def save(file_storage_or_bytes, *, filename: str, kind: str, category: str,
          content_type: str | None = None) -> StoredFile:
     """Validate and store a file for the active church. Returns its private key."""
     tenant_id = require_tenant_id()
     data = (file_storage_or_bytes if isinstance(file_storage_or_bytes, (bytes, bytearray))
             else file_storage_or_bytes.read())
+    converted = _convert_phone_picture(bytes(data), filename, kind, category)
+    if converted is not None:
+        data, filename, content_type = converted
     ext = validate_upload(filename, bytes(data), kind)
     safe_category = "".join(ch for ch in category.lower() if ch.isalnum() or ch in "-_") or "files"
     key = f"{_tenant_prefix(tenant_id)}{safe_category}/{uuid.uuid4().hex}.{ext}"
