@@ -118,6 +118,15 @@ NOT_SET_UP = ("Photos and documents can't be saved yet because file storage isn'
               "Please tell your ChurchPlus administrator.")
 
 
+def _endpoint_base(url: str | None) -> str | None:
+    """Keep only https://host – Cloudflare shows the bucket's S3 API address with /bucket-name on the end."""
+    from urllib.parse import urlparse
+    if not url:
+        return None
+    parts = urlparse(url.strip())
+    return f"{parts.scheme}://{parts.netloc}" if parts.scheme and parts.netloc else url.strip()
+
+
 def config_problem(cfg) -> str | None:
     """What is wrong with the file-storage settings, in plain words (None when they look complete)."""
     if cfg.get("STORAGE_BACKEND") == "s3":
@@ -197,7 +206,7 @@ class S3Storage:
             raise RuntimeError("STORAGE_BACKEND=s3 requires boto3 (pip install boto3).") from exc
         from botocore.config import Config
         self.bucket = cfg["S3_BUCKET"]
-        endpoint = (cfg.get("S3_ENDPOINT_URL") or "").rstrip("/") or None
+        endpoint = _endpoint_base(cfg.get("S3_ENDPOINT_URL"))
         options = {"signature_version": "s3v4", "retries": {"max_attempts": 3, "mode": "standard"},
                    "connect_timeout": 10, "read_timeout": 30}
         if endpoint:   # Cloudflare R2, Backblaze B2, Wasabi…: only send checksums the provider understands

@@ -158,3 +158,8 @@ def test_check_storage_command(app, fake_s3):
     app.config["S3_SECRET_ACCESS_KEY"] = None
     out = app.test_cli_runner().invoke(args=["churchplus", "check-storage"])
     assert out.exit_code == 1 and "S3_SECRET_ACCESS_KEY" in out.output
+
+
+def test_bucket_address_pasted_as_endpoint_is_accepted():
+    assert storage._endpoint_base("https://abc123.r2.cloudflarestorage.com/churchplus-files/") == "https://abc123.r2.cloudflarestorage.com"
+    assert storage.config_problem({**S3, "S3_ENDPOINT_URL": "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com/churchplus-files"}) is None
