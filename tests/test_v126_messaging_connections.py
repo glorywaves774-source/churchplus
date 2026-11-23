@@ -134,3 +134,22 @@ def test_settings_page_has_connections_and_test_form(client, grace):
     html = client.get("/communication/settings").get_data(as_text=True)
     assert_csp_clean(html)
     assert 'id="connections"' in html and 'action="/communication/test"' in html and "Test mode" in html
+
+
+@pytest.mark.parametrize("reply, ok", [
+    ({"rate": 0.03, "messageId": "a1", "status": 0, "networkId": "62001"}, True),
+    ({"Status": 0, "MessageId": "a2", "Rate": 1}, True),
+    ({"message": "Success", "responseCode": "0001", "data": {"messageId": "a3"}}, True),
+    ({"status": 1, "statusDescription": "Insufficient balance"}, False),
+    ({"message": "Invalid sender", "responseCode": "4101"}, False),
+])
+def test_hubtel_replies_in_every_known_shape(live, monkeypatch, reply, ok):
+    live.config.update(SMS_BACKEND="hubtel", HUBTEL_SMS_CLIENT_ID="id", HUBTEL_SMS_CLIENT_SECRET="secret")
+    seen = []
+    monkeypatch.setattr(messaging, "_http", lambda url, **k: seen.append(url) or reply)
+    with live.test_request_context():
+        res = messaging.send_sms("233244000001", "Hello", "GraceChapel")
+    assert res.ok is ok
+    assert seen[0].startswith("https://smsc.hubtel.com/v1/messages/send?") and "from=GraceChapel" in seen[0]
+    if not ok:
+        assert "Hubtel didn't accept" in res.error

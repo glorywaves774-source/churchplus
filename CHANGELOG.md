@@ -14,7 +14,9 @@
   * an expired WhatsApp access token or a wrong SMS API key;
   * WhatsApp's rule that a normal message can only go to someone who messaged the church in the
     last 24 hours.
-* 12 new automated tests.
+* Hubtel replies are understood in every format Hubtel has used, so a successful SMS is never
+  recorded as failed, and a refusal (such as "insufficient balance") is shown in plain words.
+* 17 new automated tests.
 
 
 ## 1.2.5 – Invitations work even when email isn't set up

@@ -186,6 +186,21 @@ def _provider_error(e: Exception) -> str:
     return f"Couldn't reach the service: {e}"[:250]
 
 
+def _hubtel_result(res: dict) -> SendResult:
+    """Hubtel has answered in a few shapes over the years: {"messageId", "status"}, {"MessageId", "Status"}
+    and {"responseCode", "data": {"messageId"}}. Status 0 / responseCode 0000 or 0001 mean accepted."""
+    data = res.get("data") if isinstance(res.get("data"), dict) else {}
+    ref = res.get("messageId") or res.get("MessageId") or data.get("messageId") or data.get("MessageId")
+    status = next((res.get(k) for k in ("status", "Status") if res.get(k) is not None), None)
+    code = str(res.get("responseCode") or "")
+    accepted = bool(ref) and (status in (None, 0, "0") and (not code or code in ("0000", "0001")))
+    if accepted:
+        return SendResult(True, str(ref))
+    detail = (res.get("statusDescription") or res.get("message") or res.get("Message") or data.get("statusDescription")
+              or str(res))
+    return SendResult(False, error=f"Hubtel didn't accept the message: {detail}"[:250])
+
+
 def send_sms(to: str, text: str, sender: str) -> SendResult:
     state = channel_status("sms")
     if not state["ready"]:
@@ -197,8 +212,7 @@ def send_sms(to: str, text: str, sender: str) -> SendResult:
             q = urllib.parse.urlencode({"clientid": cfg["HUBTEL_SMS_CLIENT_ID"], "clientsecret": cfg["HUBTEL_SMS_CLIENT_SECRET"],
                                         "from": sender, "to": to, "content": text})
             res = _http(f"https://smsc.hubtel.com/v1/messages/send?{q}", method="GET")
-            return SendResult(res.get("status") in (0, "0", None) and bool(res.get("messageId")), res.get("messageId"),
-                              None if res.get("messageId") else str(res)[:250])
+            return _hubtel_result(res)
         if backend == "arkesel":
             res = _http("https://sms.arkesel.com/api/v2/sms/send", headers={"api-key": current_app.config["ARKESEL_API_KEY"]},
                         data={"sender": sender, "message": text, "recipients": [to]})
