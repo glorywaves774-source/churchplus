@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.2.6 – Honest SMS and WhatsApp status, with a test button
+* **No more fake "sent".** On the live site, WhatsApp was still in test mode: messages were marked
+  as sent but only written to the server log, so nobody received them. Now, a channel that isn't
+  connected to a real service says so, and nothing is marked as sent.
+* **Clear status everywhere.**
+  * Communication shows each channel as *connected*, *not connected* or *test mode*.
+  * **New message** warns before you send on a channel that isn't connected, with a link explaining
+    how to connect it.
+* **Send test** (Communication → Settings → SMS and WhatsApp connections) sends one short message
+  to a number you type, to prove SMS or WhatsApp works.
+* **Plain-language errors from the services**, for example:
+  * an expired WhatsApp access token or a wrong SMS API key;
+  * WhatsApp's rule that a normal message can only go to someone who messaged the church in the
+    last 24 hours.
+* 12 new automated tests.
+
+
 ## 1.2.5 – Invitations work even when email isn't set up
 Inviting someone, or pressing **Resend**, showed an error page on the live site, because email
 hadn't been set up there yet and the failed email stopped the whole page.

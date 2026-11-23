@@ -65,16 +65,8 @@ def index():
                      .order_by(Announcement.is_pinned.desc(), Announcement.starts_on.desc()).limit(5).all())
     return render_template("communication/index.html", rows=rows, sms_month=int(sms_month or 0), reachable=reachable,
                            announcements=announcements, cfg=messaging.settings(),
-                           providers={"sms": _provider("SMS_BACKEND"), "whatsapp": _provider("WHATSAPP_BACKEND"),
-                                      "email": _provider("MAIL_BACKEND")},
+                           providers={c: messaging.channel_status(c) for c in ("sms", "whatsapp", "email")},
                            breadcrumbs=[("Engage", None), ("Communication", None)])
-
-
-def _provider(key: str) -> str:
-    from flask import current_app
-    v = current_app.config.get(key, "console")
-    return {"console": "Test mode (nothing leaves the server)", "hubtel": "Hubtel", "arkesel": "Arkesel",
-            "meta": "WhatsApp Business (Meta)", "smtp": "Email server"}.get(v, v)
 
 
 @bp.route("/communication/new", methods=["GET", "POST"])
@@ -98,6 +90,8 @@ def compose():
                        "label": messaging.describe_audience(aud)}
             if not recips and f.get("action") != "preview":
                 flash("Nobody to send to. Check the audience, and that people have phone numbers or emails and have not opted out.", "warning")
+        elif not messaging.channel_status(channel.value)["ready"]:
+            flash(messaging.channel_status(channel.value)["reason"] + " Nothing was sent.", "danger")
         else:
             when = _local_to_utc(f.get("send_date", ""), f.get("send_time", "")) if f.get("when") == "later" else None
             if f.get("when") == "later" and (when is None or when <= utcnow()):
@@ -125,6 +119,7 @@ def compose():
     initial = {"channel": request.args.get("channel", "sms"), "audience": request.args.get("audience", "all"),
                "event": request.args.get("event", "")}
     return render_template("communication/compose.html", form=f, initial=initial, preview=preview,
+                           channels={c: messaging.channel_status(c) for c in ("sms", "whatsapp", "email")},
                            placeholders=messaging.PLACEHOLDERS, today=date.today(), **_choices(),
                            breadcrumbs=[("Communication", url_for("communication.index")), ("New message", None)])
 
@@ -233,7 +228,33 @@ def comm_settings():
         flash("Settings saved.", "success")
         return redirect(url_for("communication.comm_settings"))
     return render_template("communication/settings.html", cfg=messaging.settings(), sender=messaging.sender_id(g.tenant),
+                           channels={c: messaging.channel_status(c) for c in ("sms", "whatsapp")},
                            breadcrumbs=[("Communication", url_for("communication.index")), ("Settings", None)])
+
+
+@bp.post("/communication/test")
+@permission_required("communication.manage_settings")
+@limiter.limit("10 per hour")
+def send_test():
+    """Send one short test message to a number the admin types, to prove SMS or WhatsApp is connected."""
+    channel = request.form.get("channel")
+    if channel not in ("sms", "whatsapp"):
+        abort(400)
+    number = messaging.normalize_phone(request.form.get("phone"), g.tenant.country or "GH")
+    if not number:
+        flash("Enter a valid phone number, e.g. 0244 123 456.", "danger")
+        return redirect(url_for("communication.comm_settings"))
+    text = f"Test message from {g.tenant.name} on ChurchPlus. If you received this, {channel.upper() if channel == 'sms' else 'WhatsApp'} is working."
+    res = (messaging.send_sms(number, text, messaging.sender_id(g.tenant)) if channel == "sms"
+           else messaging.send_whatsapp(number, text))
+    audit.record("communication.test_sent", entity=g.tenant, actor=g.user, channel=channel, ok=res.ok)
+    db.session.commit()
+    label = "SMS" if channel == "sms" else "WhatsApp"
+    if res.ok:
+        flash(f"Test {label} handed to the service for +{number}. It should arrive within a minute.", "success")
+    else:
+        flash(f"The test {label} wasn't sent. {res.error or ''}".strip(), "danger")
+    return redirect(url_for("communication.comm_settings"))
 
 
 @bp.post("/members/<public_id>/preferences")

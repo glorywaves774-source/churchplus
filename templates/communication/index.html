@@ -35,10 +35,13 @@
     {% endcall %}
     {% call ui.card('Delivery services') %}
       <dl class="kv">
-        <dt>SMS</dt><dd>{{ providers.sms }}</dd>
-        <dt>WhatsApp</dt><dd>{{ providers.whatsapp }}</dd>
-        <dt>Email</dt><dd>{{ providers.email }}</dd>
+        {% for key, label in [('sms', 'SMS'), ('whatsapp', 'WhatsApp'), ('email', 'Email')] %}{% set st = providers[key] %}
+        <dt>{{ label }}</dt><dd><span class="badge {{ 'badge-success' if st.ready and not st.test_mode else ('badge-warning' if st.ready else 'badge-danger') }}">{{ st.label }}</span></dd>
+        {% endfor %}
       </dl>
+      {% if not (providers.sms.ready and providers.whatsapp.ready) and can('communication.manage_settings') %}
+        <p class="help mt-3">{{ icon('info', 15) }} <a href="{{ url_for('communication.comm_settings') }}#connections">How to connect SMS and WhatsApp</a></p>
+      {% endif %}
     {% endcall %}
   </div>
 </div>

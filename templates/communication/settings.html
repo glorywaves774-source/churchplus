@@ -25,4 +25,26 @@
   {% endcall %}
   <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon('save', 17) }}<span>Save</span></button></div>
 </form>
+
+<section class="card mt-4" id="connections" aria-labelledby="connections-title">
+  <div class="card-header"><div><h3 id="connections-title">SMS and WhatsApp connections</h3><p>Messages go out through your own account with these services.</p></div></div>
+  <div class="card-body stack">
+    <dl class="kv">
+      <dt>SMS</dt><dd><span class="badge {{ 'badge-success' if channels.sms.ready and not channels.sms.test_mode else ('badge-warning' if channels.sms.ready else 'badge-danger') }}">{{ channels.sms.label }}</span></dd>
+      <dt>WhatsApp</dt><dd><span class="badge {{ 'badge-success' if channels.whatsapp.ready and not channels.whatsapp.test_mode else ('badge-warning' if channels.whatsapp.ready else 'badge-danger') }}">{{ channels.whatsapp.label }}</span></dd>
+    </dl>
+    {% if not channels.sms.ready or not channels.whatsapp.ready %}
+    <div class="help">
+      <p><strong>To connect SMS:</strong> open an account with Arkesel (sms.arkesel.com) or Hubtel, register your sender name (above) with them, and give the API key to whoever manages ChurchPlus's hosting.</p>
+      <p class="mt-2"><strong>To connect WhatsApp:</strong> set up a WhatsApp Business account in Meta Business Manager with a phone number, and give its phone number ID and access token to whoever manages ChurchPlus's hosting.</p>
+    </div>
+    {% endif %}
+    <form method="post" action="{{ url_for('communication.send_test') }}" class="form-grid" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      {{ ui.input('phone', 'Send a test to this number', '', help='Your own phone, e.g. 0244 123 456', type='tel', attrs={'autocomplete': 'tel'}) }}
+      {{ ui.select('channel', [('sms', 'SMS'), ('whatsapp', 'WhatsApp')], 'By', 'sms') }}
+      <div class="form-actions span-2"><button class="btn" type="submit">{{ icon('send', 17) }}<span>Send test</span></button></div>
+    </form>
+  </div>
+</section>
 {% endblock %}

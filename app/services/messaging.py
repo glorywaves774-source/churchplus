@@ -123,6 +123,39 @@ class SendResult:
     error: str | None = None
 
 
+_SERVICE_NAMES = {"hubtel": "Hubtel", "arkesel": "Arkesel", "meta": "WhatsApp Business (Meta)", "smtp": "Email server (SMTP)"}
+_NEEDS = {
+    ("sms", "hubtel"): ("HUBTEL_SMS_CLIENT_ID", "HUBTEL_SMS_CLIENT_SECRET"),
+    ("sms", "arkesel"): ("ARKESEL_API_KEY",),
+    ("whatsapp", "meta"): ("WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID"),
+    ("email", "smtp"): ("MAIL_SMTP_HOST",),
+}
+_NOT_CONNECTED = {
+    "sms": "SMS isn't connected to an SMS service (Hubtel or Arkesel) yet, so SMS can't be sent.",
+    "whatsapp": "WhatsApp isn't connected to a WhatsApp Business account yet, so WhatsApp messages can't be sent.",
+    "email": "Email isn't set up for ChurchPlus yet, so emails can't be sent.",
+}
+
+
+def channel_status(channel: str) -> dict:
+    """Is a channel really able to deliver? On the live site, "test mode" is not good enough:
+    a message would be marked sent while nobody receives it."""
+    cfg = current_app.config
+    key = {"sms": "SMS_BACKEND", "whatsapp": "WHATSAPP_BACKEND", "email": "MAIL_BACKEND"}[channel]
+    backend = cfg.get(key) or "console"
+    live = cfg.get("ENV_NAME") == "production"
+    if (channel, backend) in _NEEDS:
+        missing = [k for k in _NEEDS[(channel, backend)] if not cfg.get(k)]
+        name = _SERVICE_NAMES[backend]
+        if missing:
+            return {"ready": False, "test_mode": False, "label": f"{name}: not connected",
+                    "reason": _NOT_CONNECTED[channel] + f" ({name} is chosen but its settings are missing: {', '.join(missing)}.)"}
+        return {"ready": True, "test_mode": False, "label": f"{name}: connected", "reason": None}
+    if live:
+        return {"ready": False, "test_mode": True, "label": "Not connected", "reason": _NOT_CONNECTED[channel]}
+    return {"ready": True, "test_mode": True, "label": "Test mode (nothing leaves the server)", "reason": None}
+
+
 def _http(url: str, *, data: dict | None = None, headers: dict | None = None, method: str = "POST") -> dict:
     body = json.dumps(data).encode() if data is not None else None
     req = urllib.request.Request(url, data=body, method=method,
@@ -132,7 +165,31 @@ def _http(url: str, *, data: dict | None = None, headers: dict | None = None, me
     return json.loads(raw)
 
 
+def _provider_error(e: Exception) -> str:
+    """Turn a provider failure into a sentence a church administrator can act on."""
+    if isinstance(e, urllib.error.HTTPError):
+        try:
+            body = json.loads(e.read().decode() or "{}")
+        except (ValueError, OSError):
+            body = {}
+        err = body.get("error") if isinstance(body.get("error"), dict) else {}
+        code = err.get("code")
+        if code == 131047 or code == 470:
+            return ("WhatsApp only allows a normal message to someone who messaged the church in the last 24 hours. "
+                    "Ask them to send the church a WhatsApp message first, or use SMS.")
+        if code == 190 or e.code == 401:
+            return "The service refused the login details (access token or API key). Check they are correct and not expired."
+        if code in (131030, 131026):
+            return "That number can't receive WhatsApp messages (not on WhatsApp, or not allowed by the account yet)."
+        detail = err.get("message") or body.get("message") or body.get("Message") or ""
+        return f"The service answered with an error ({e.code}). {detail}".strip()[:250]
+    return f"Couldn't reach the service: {e}"[:250]
+
+
 def send_sms(to: str, text: str, sender: str) -> SendResult:
+    state = channel_status("sms")
+    if not state["ready"]:
+        return SendResult(False, error=state["reason"][:250])
     backend = current_app.config["SMS_BACKEND"]
     try:
         if backend == "hubtel":
@@ -149,13 +206,16 @@ def send_sms(to: str, text: str, sender: str) -> SendResult:
             return SendResult(ok, (res.get("data") or [{}])[0].get("id") if ok and isinstance(res.get("data"), list) else None,
                               None if ok else str(res.get("message") or res)[:250])
     except (urllib.error.URLError, TimeoutError, ValueError, KeyError) as e:
-        return SendResult(False, error=f"Provider error: {e}"[:250])
+        return SendResult(False, error=_provider_error(e))
     outbox.append({"channel": "sms", "to": to, "text": text, "sender": sender})
     current_app.logger.info("SMS (console) to=%s from=%s: %s", to, sender, text)
     return SendResult(True, f"console-{len(outbox)}")
 
 
 def send_whatsapp(to: str, text: str) -> SendResult:
+    state = channel_status("whatsapp")
+    if not state["ready"]:
+        return SendResult(False, error=state["reason"][:250])
     if current_app.config["WHATSAPP_BACKEND"] == "meta":
         cfg = current_app.config
         try:
@@ -165,7 +225,7 @@ def send_whatsapp(to: str, text: str) -> SendResult:
             msgs = res.get("messages") or []
             return SendResult(bool(msgs), msgs[0].get("id") if msgs else None, None if msgs else str(res)[:250])
         except (urllib.error.URLError, TimeoutError, ValueError) as e:
-            return SendResult(False, error=f"Provider error: {e}"[:250])
+            return SendResult(False, error=_provider_error(e))
     outbox.append({"channel": "whatsapp", "to": to, "text": text})
     current_app.logger.info("WhatsApp (console) to=%s: %s", to, text)
     return SendResult(True, f"console-{len(outbox)}")
@@ -173,6 +233,9 @@ def send_whatsapp(to: str, text: str) -> SendResult:
 
 def send_email(to: str, subject: str, text: str, church: Tenant) -> SendResult:
     from app.services import mailer
+    state = channel_status("email")
+    if not state["ready"]:
+        return SendResult(False, error=state["reason"][:250])
     try:
         mailer.send(to, subject, "church_message", text=text, church=church)
         return SendResult(True, None)

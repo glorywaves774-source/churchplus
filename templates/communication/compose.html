@@ -13,6 +13,9 @@
       {% endfor %}
     </div>
     <p class="help mt-4" data-show-when="channel=whatsapp">Only members who agreed to WhatsApp messages receive them (tick it in their contact preferences).</p>
+    {% for key in ['sms', 'whatsapp', 'email'] %}{% if not channels[key].ready %}
+    <div class="alert alert-warning mt-4" role="status" data-show-when="channel={{ key }}">{{ icon('alert-triangle', 17) }}<span>{{ channels[key].reason }}{% if can('communication.manage_settings') %} <a href="{{ url_for('communication.comm_settings') }}#connections">How to connect it</a>{% endif %}</span></div>
+    {% endif %}{% endfor %}
   {% endcall %}
   {% call ui.card('Who') %}
   <div class="form-grid">
