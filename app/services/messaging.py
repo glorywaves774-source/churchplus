@@ -67,8 +67,13 @@ def save_settings(tenant: Tenant, values: dict) -> None:
 
 
 def sender_id(tenant: Tenant) -> str:
-    """SMS sender name: up to 11 letters/digits (network rule)."""
-    raw = settings(tenant).get("sms_sender") or tenant.name
+    """SMS sender name: up to 11 letters/digits (network rule).
+
+    Only a church that has its own sender name registered with the SMS service sets one in
+    Communication settings. Otherwise the platform's registered name (SMS_DEFAULT_SENDER, e.g.
+    "ChurchPlus") is used: an unregistered name such as the church's own would be rejected.
+    """
+    raw = settings(tenant).get("sms_sender") or current_app.config["SMS_DEFAULT_SENDER"]
     clean = re.sub(r"[^A-Za-z0-9 ]", "", raw).strip()
     return (clean.replace(" ", "")[:11] if len(clean) > 11 else clean) or current_app.config["SMS_DEFAULT_SENDER"]
 

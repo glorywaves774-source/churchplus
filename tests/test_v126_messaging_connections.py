@@ -153,3 +153,13 @@ def test_hubtel_replies_in_every_known_shape(live, monkeypatch, reply, ok):
     assert seen[0].startswith("https://smsc.hubtel.com/v1/messages/send?") and "from=GraceChapel" in seen[0]
     if not ok:
         assert "Hubtel didn't accept" in res.error
+
+
+def test_sender_name_defaults_to_the_registered_platform_name(app, db, grace):
+    from app.models import Tenant
+    from app.utils.tenancy import tenant_context
+    with app.test_request_context(), tenant_context(grace):
+        church = db.session.get(Tenant, grace)
+        assert messaging.sender_id(church) == app.config["SMS_DEFAULT_SENDER"] == "ChurchPlus"
+        messaging.save_settings(church, {"sms_sender": "Grace Chapel"})
+        assert messaging.sender_id(church) == "GraceChapel"      # spaces dropped to fit 11 characters

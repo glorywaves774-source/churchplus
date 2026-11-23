@@ -7,7 +7,7 @@
   <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
   {% call ui.card('SMS sender name') %}
     <div class="form-grid">
-      {{ ui.input('sms_sender', 'Sender name', cfg.sms_sender, help='Up to 11 letters or numbers, e.g. GraceChapel. It must be registered with your SMS provider. Now showing as: ' ~ sender, attrs={'maxlength': 11}) }}
+      {{ ui.input('sms_sender', 'Sender name', cfg.sms_sender, help='Leave empty to use the shared name ' ~ config.SMS_DEFAULT_SENDER ~ '. Only fill this in once your own name (up to 11 letters, e.g. GraceChapel) has been approved by the SMS service, or texts will be refused. Now showing as: ' ~ sender, attrs={'maxlength': 11}) }}
     </div>
   {% endcall %}
   {% call ui.card('Birthday greetings', 'Sent automatically each morning to members who have not opted out') %}

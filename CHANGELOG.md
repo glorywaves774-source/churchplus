@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.7 – SMS through Arkesel
+* Church SMS now goes through **Arkesel**, and the live site is connected to it.
+* **Texts are sent as "ChurchPlus"** unless a church has its own sender name approved by the SMS
+  service. Before, an unregistered church name was used, which the SMS service would refuse.
+  The Settings page explains this next to the sender name box.
+* 1 new automated test.
+
+
 ## 1.2.6 – Honest SMS and WhatsApp status, with a test button
 * **No more fake "sent".** On the live site, WhatsApp was still in test mode: messages were marked
   as sent but only written to the server log, so nobody received them. Now, a channel that isn't

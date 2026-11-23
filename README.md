@@ -31,7 +31,7 @@ pytest                                     # in-memory SQLite (fast)
 TEST_DATABASE_URL=postgresql://user:pass@localhost/churchplus_test pytest   # same suite on PostgreSQL
 ```
 
-411 tests cover every module: the app factory, configuration safety, security headers, roles
+412 tests cover every module: the app factory, configuration safety, security headers, roles
 and permissions, migrations, finance and double-entry rules, privacy rules for prayer,
 counselling and children, messaging, the portal, the website, reports and exports, billing and
 webhooks, the platform console, the installable app, and **cross-church isolation** everywhere.
