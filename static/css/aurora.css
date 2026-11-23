@@ -191,3 +191,7 @@ body::after {
   body::before, body::after, .site-hero::before { display: none !important; }
   body { background: #fff !important; }
 }
+
+/* Menus stay solid so the page behind never shows through them. */
+.dropdown-menu { background: var(--cp-surface-solid); }
+

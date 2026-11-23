@@ -113,10 +113,23 @@
   /* ------------------------------------------------------------------ */
   /* Dropdowns                                                           */
   /* ------------------------------------------------------------------ */
+  /* Cards are separate layers (glass blur), so a later card would paint over an open menu.
+     While a menu is open, lift every box around it above its neighbours. */
+  function liftAncestors(dd, on) {
+    for (var el = dd.parentElement; el && el !== document.body; el = el.parentElement) {
+      if (on) {
+        el.classList.add(getComputedStyle(el).position === "static" ? "menu-host-static" : "menu-host");
+      } else {
+        el.classList.remove("menu-host", "menu-host-static");
+      }
+      if (el.classList.contains("app-main") || el.classList.contains("topbar")) { break; }
+    }
+  }
   function closeDropdowns(except) {
     $all(".dropdown.open").forEach(function (d) {
       if (d !== except) {
         d.classList.remove("open");
+        liftAncestors(d, false);
         var t = $("[data-dropdown-toggle]", d);
         if (t) { t.setAttribute("aria-expanded", "false"); }
       }
@@ -129,6 +142,7 @@
       var open = !dd.classList.contains("open");
       closeDropdowns(dd);
       dd.classList.toggle("open", open);
+      liftAncestors(dd, open);
       toggle.setAttribute("aria-expanded", String(open));
       if (open) { var first = $(".dropdown-item", dd); if (first) { first.focus({ preventScroll: true }); } }
       return;

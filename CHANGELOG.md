@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.4 – Menus no longer hidden behind cards
+* The **⋯** menu (for example next to **Edit** on a member's page) could be partly covered by
+  the card below it, hiding items such as *Giving statement* and *Download personal data*. Open
+  menus now always sit on top, on computers, tablets and phones, in light and dark mode.
+* Menus have a solid background again, so the page behind never shows through.
+
+
 ## 1.2.3 – Removing a photo is easy to find
 * **Remove photo** now sits right next to **Take photo with camera** on member and clergy/staff
   records, as a normal button (it was a small grey link at the bottom of the photo box).

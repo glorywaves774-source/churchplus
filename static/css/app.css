@@ -295,6 +295,10 @@ html.sidebar-collapsed .app-body { margin-left: var(--cp-sidebar-w-collapsed); }
   transition: opacity .15s var(--cp-ease), transform .15s var(--cp-ease);
 }
 .dropdown.open .dropdown-menu { opacity: 1; transform: none; pointer-events: auto; }
+/* Boxes around an open menu are lifted above the cards that follow them (set by app.js). */
+.menu-host { z-index: 60; }
+.menu-host-static { position: relative; z-index: 60; }
+.dropdown.open { z-index: 61; }
 .dropdown-menu.align-left { left: 0; right: auto; transform-origin: top left; }
 .dropdown-item { display: flex; align-items: center; gap: 10px; width: 100%; min-height: 38px; padding: 8px 10px; border: 0; border-radius: var(--cp-radius-sm); background: none; color: var(--cp-text); font: 500 14px var(--cp-font); text-align: left; cursor: pointer; }
 .dropdown-item:hover { background: var(--cp-surface-hover); text-decoration: none; }
