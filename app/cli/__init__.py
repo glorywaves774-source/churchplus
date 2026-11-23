@@ -380,5 +380,15 @@ def export_church_cmd(slug, out_path):
     click.echo(f"Exported {t.name} to {out_path} ({len(data)} bytes)")
 
 
+@cli.command("check-storage")
+def check_storage_cmd():
+    """Save, read back and delete a test file in file storage (S3 / R2 / disk)."""
+    from app.services.storage import check_round_trip
+    ok, message = check_round_trip()
+    click.echo(message)
+    if not ok:
+        raise SystemExit(1)
+
+
 def register_cli(app: Flask) -> None:
     app.cli.add_command(cli)

@@ -113,17 +113,91 @@ class LocalStorage:
             path.unlink()
 
 
+NOT_SET_UP = ("Photos and documents can't be saved yet because file storage isn't set up. "
+              "Please tell your ChurchPlus administrator.")
+
+
+def config_problem(cfg) -> str | None:
+    """What is wrong with the file-storage settings, in plain words (None when they look complete)."""
+    if cfg.get("STORAGE_BACKEND") == "s3":
+        missing = [n for n in ("S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY") if not cfg.get(n)]
+        if missing:
+            return "S3 storage is switched on but " + ", ".join(missing) + (" is" if len(missing) == 1 else " are") + " not set."
+        endpoint = cfg.get("S3_ENDPOINT_URL")
+        if endpoint and not endpoint.startswith("https://"):
+            return "S3_ENDPOINT_URL must start with https://"
+        return None
+    if cfg.get("ENV_NAME") == "production" and not os.environ.get("LOCAL_STORAGE_PATH"):
+        return ("Files are kept on the server's temporary disk, which Render wipes on every deploy. "
+                "Set the S3_* keys, or attach a Render Disk and set LOCAL_STORAGE_PATH.")
+    return None
+
+
+def explain_error(exc: Exception) -> str:
+    """Turn an S3 error into advice an administrator can act on."""
+    code = ""
+    resp = getattr(exc, "response", None)
+    if isinstance(resp, dict):
+        code = (resp.get("Error") or {}).get("Code", "")
+    text = f"{type(exc).__name__} {code} {exc}"
+    if "InvalidAccessKeyId" in text or "InvalidArgument" in text and "Access Key" in text:
+        return "The access key ID is not recognised. Copy S3_ACCESS_KEY_ID again from your storage provider."
+    if "SignatureDoesNotMatch" in text:
+        return "The secret key does not match the access key. Copy S3_SECRET_ACCESS_KEY again (no spaces)."
+    if "NoSuchBucket" in text:
+        return "The bucket was not found. Check S3_BUCKET (and S3_ENDPOINT_URL for Cloudflare R2)."
+    if "AccessDenied" in text or "Forbidden" in text or "403" in text:
+        return "The keys work but are not allowed to use this bucket. Give them read and write access to it."
+    if "EndpointConnectionError" in text or "Could not connect" in text or "ConnectTimeout" in text:
+        return "The storage service could not be reached. Check S3_ENDPOINT_URL (and S3_REGION for AWS)."
+    if "PermanentRedirect" in text or "AuthorizationHeaderMalformed" in text:
+        return "The region is wrong for this bucket. Set S3_REGION to the bucket's region (use auto for Cloudflare R2)."
+    return f"Storage error: {type(exc).__name__}{(' ' + code) if code else ''}."
+
+
+def check_round_trip() -> tuple[bool, str]:
+    """Write, read back and delete a small test file. Used by the platform console and CLI."""
+    cfg = current_app.config
+    problem = config_problem(cfg)
+    if problem and cfg.get("STORAGE_BACKEND") == "s3":
+        return False, problem
+    key = f"platform/storage-check/{uuid.uuid4().hex}.txt"
+    payload = b"ChurchPlus storage check"
+    try:
+        store = backend()
+        store.put(key, payload, "text/plain")
+        ok = store.get(key) == payload
+        store.delete(key)
+    except Exception as exc:  # noqa: BLE001 - report any failure in plain words
+        current_app.logger.exception("Storage check failed")
+        return False, explain_error(exc)
+    if not ok:
+        return False, "A test file was saved but came back different."
+    where = f"bucket {cfg.get('S3_BUCKET')}" if cfg.get("STORAGE_BACKEND") == "s3" else "the server disk"
+    return True, f"File storage works: a test file was saved to {where}, read back and removed." + (f" Note: {problem}" if problem else "")
+
+
 class S3Storage:
     def __init__(self, cfg):
+        if config_problem(cfg):
+            current_app.logger.error("File storage is not set up: %s", config_problem(cfg))
+            raise StorageError(NOT_SET_UP)
         try:
             import boto3  # noqa: WPS433 - optional dependency
         except ImportError as exc:  # pragma: no cover
             raise RuntimeError("STORAGE_BACKEND=s3 requires boto3 (pip install boto3).") from exc
+        from botocore.config import Config
         self.bucket = cfg["S3_BUCKET"]
+        endpoint = (cfg.get("S3_ENDPOINT_URL") or "").rstrip("/") or None
+        options = {"signature_version": "s3v4", "retries": {"max_attempts": 3, "mode": "standard"},
+                   "connect_timeout": 10, "read_timeout": 30}
+        if endpoint:   # Cloudflare R2, Backblaze B2, Wasabi…: only send checksums the provider understands
+            options.update(request_checksum_calculation="when_required", response_checksum_validation="when_required")
         self.client = boto3.client(
-            "s3", region_name=cfg.get("S3_REGION"), endpoint_url=cfg.get("S3_ENDPOINT_URL"),
+            "s3", region_name=cfg.get("S3_REGION") or ("auto" if endpoint else None), endpoint_url=endpoint,
             aws_access_key_id=cfg.get("S3_ACCESS_KEY_ID"),
             aws_secret_access_key=cfg.get("S3_SECRET_ACCESS_KEY"),
+            config=Config(**options),
         )
 
     def put(self, key, data, content_type):  # pragma: no cover - needs network

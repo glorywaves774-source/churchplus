@@ -47,6 +47,10 @@ def create_app(config_name: str | None = None, **overrides) -> Flask:
     register_cli(app)
 
     app.logger.info("ChurchPlus %s started (%s)", app.config["APP_VERSION"], config.__name__)
+    from app.services.storage import config_problem
+    problem = config_problem(app.config)
+    if problem and app.config.get("ENV_NAME") == "production":
+        app.logger.error("FILE STORAGE NOT READY: %s Photos and documents cannot be kept until this is fixed.", problem)
     return app
 
 

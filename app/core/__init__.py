@@ -26,6 +26,11 @@ def search():
                            breadcrumbs=[("Search", None)])
 
 
+def _storage_problem():
+    from app.services.storage import config_problem
+    return config_problem(current_app.config)
+
+
 @bp.get("/healthz")
 @limiter.exempt
 @csrf.exempt
@@ -43,6 +48,7 @@ def health():
         "app": current_app.config["APP_NAME"],
         "version": current_app.config["APP_VERSION"],
         "database": "ok" if db_ok else "unavailable",
+        "storage": "not set up" if _storage_problem() else current_app.config["STORAGE_BACKEND"],
         "time": datetime.now(timezone.utc).isoformat(),
     }
     return jsonify(body), (200 if db_ok else 503)

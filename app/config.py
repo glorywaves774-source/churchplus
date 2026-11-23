@@ -32,7 +32,7 @@ def normalise_database_url(url: str | None) -> str | None:
 class BaseConfig:
     APP_NAME = "ChurchPlus"
     COMPANY_NAME = "Kayron Global Tech Services"
-    APP_VERSION = "1.2.1"  # phone photos
+    APP_VERSION = "1.2.2"  # storage setup
 
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
@@ -58,11 +58,11 @@ class BaseConfig:
     LOCAL_STORAGE_PATH = os.environ.get(
         "LOCAL_STORAGE_PATH", str(BASE_DIR / "instance" / "private_uploads")
     )
-    S3_BUCKET = os.environ.get("S3_BUCKET")
-    S3_REGION = os.environ.get("S3_REGION")
-    S3_ENDPOINT_URL = os.environ.get("S3_ENDPOINT_URL")  # e.g. Cloudflare R2 / Backblaze
-    S3_ACCESS_KEY_ID = os.environ.get("S3_ACCESS_KEY_ID")
-    S3_SECRET_ACCESS_KEY = os.environ.get("S3_SECRET_ACCESS_KEY")
+    S3_BUCKET = (os.environ.get("S3_BUCKET") or "").strip() or None
+    S3_REGION = (os.environ.get("S3_REGION") or "").strip() or None
+    S3_ENDPOINT_URL = (os.environ.get("S3_ENDPOINT_URL") or "").strip() or None  # e.g. Cloudflare R2 / Backblaze
+    S3_ACCESS_KEY_ID = (os.environ.get("S3_ACCESS_KEY_ID") or "").strip() or None
+    S3_SECRET_ACCESS_KEY = (os.environ.get("S3_SECRET_ACCESS_KEY") or "").strip() or None
 
     # Rate limiting
     RATELIMIT_STORAGE_URI = os.environ.get("RATELIMIT_STORAGE_URI", "memory://")

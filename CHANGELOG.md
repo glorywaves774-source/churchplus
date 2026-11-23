@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.2.2 – File storage set-up made clear
+
+Photos couldn't be stored on the live site because S3 storage was switched on but no bucket or
+keys had been entered. Now:
+* People trying to save a photo or document are told storage isn't set up (instead of a vague
+  "try again"), and the server log says exactly which setting is missing.
+* The platform console has a **File storage** panel showing whether storage is set up, with a
+  **Test storage** button (super admins) that saves, reads back and removes a test file and
+  explains any problem in plain words: wrong key, wrong secret, bucket not found, no permission,
+  wrong region or address. The same check runs with `flask churchplus check-storage`.
+* `/healthz` reports the storage state.
+* Keys pasted with stray spaces or line breaks are cleaned. Cloudflare R2, Backblaze B2 and other
+  S3-compatible services work out of the box (region `auto`, compatible checksums).
+* 14 new tests (392 in total), including real S3 calls against an S3 emulator.
+
+
 ## 1.2.1 – Photos from any phone can be stored
 
 **Fixed** – some photos taken on phones could not be saved:

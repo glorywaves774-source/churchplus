@@ -40,7 +40,34 @@ Render → churchplus → Settings → Custom Domains → add `app.yourdomain.co
 it shows, then set `PUBLIC_BASE_URL=https://app.yourdomain.com`. Church websites are at
 `https://app.yourdomain.com/c/<workspace-id>`.
 
-## 3. Environment variables
+## 3. File storage (photos and documents) – required
+
+Render wipes the app's own disk on every deploy, so photos and documents must go to S3-compatible
+storage. **Cloudflare R2** is the simplest (no download fees):
+
+1. Cloudflare dashboard → **R2** → **Create bucket** → name it e.g. `churchplus-files`
+   (leave it private; ChurchPlus never makes files public).
+2. R2 → **Manage API tokens** → **Create API token** → permission **Object Read & Write**,
+   limited to that bucket. Copy the **Access Key ID** and **Secret Access Key** (shown once).
+3. Note your **Account ID** (R2 overview page).
+4. Render → churchplus → Environment (or the *churchplus-shared* group):
+
+   | Key | Value |
+   |---|---|
+   | `STORAGE_BACKEND` | `s3` |
+   | `S3_BUCKET` | `churchplus-files` |
+   | `S3_ENDPOINT_URL` | `https://<ACCOUNT_ID>.r2.cloudflarestorage.com` |
+   | `S3_REGION` | `auto` |
+   | `S3_ACCESS_KEY_ID` | the access key ID |
+   | `S3_SECRET_ACCESS_KEY` | the secret access key |
+
+5. Save (Render redeploys). Sign in as super admin → **/platform** → **File storage** → **Test storage**.
+
+AWS S3 works too: leave `S3_ENDPOINT_URL` empty and set `S3_REGION` to the bucket's region
+(e.g. `eu-west-1`), with an IAM user allowed `s3:PutObject`, `s3:GetObject` and `s3:DeleteObject`
+on the bucket.
+
+## 3b. Environment variables
 
 | Variable | Purpose |
 |---|---|

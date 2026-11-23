@@ -170,6 +170,7 @@ LABELS = {
     "platform.invoice_voided": ("Invoice voided by ChurchPlus", "x-circle"),
     "platform.plan_updated": ("Plan prices updated", "layers"),
     "church.data_exported": ("Church data downloaded", "download"),
+    "platform.storage_checked": ("File storage tested", "server"),
     "auth.login": ("Signed in", "log-in"),
     "auth.logout": ("Signed out", "log-out"),
 }

@@ -13,7 +13,7 @@ from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from functools import wraps
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, url_for
+from flask import Blueprint, current_app, abort, flash, g, redirect, render_template, request, url_for
 from sqlalchemy import func, or_
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -75,9 +75,25 @@ def index():
              "series": [{"label": "New churches", "data": [signups.get((m.year, m.month), 0) for m in months]}]}
     names = {t.id: t for t in tenants}
     pending = [t for t in tenants if t.status == TenantStatus.PENDING]
-    return render_template("platform/index.html", total=len(tenants), by_status=by_status, sub_status=sub_status,
+    from app.services.storage import config_problem
+    storage_problem = config_problem(current_app.config)
+    return render_template("platform/index.html", storage_problem=storage_problem,
+                           storage_backend=current_app.config["STORAGE_BACKEND"],
+                           storage_bucket=current_app.config.get("S3_BUCKET"), total=len(tenants), by_status=by_status, sub_status=sub_status,
                            mrr=billing.mrr(), revenue=Decimal(str(revenue or 0)), trials=trials, overdue=overdue,
                            names=names, chart=chart, pending=pending)
+
+
+@bp.post("/storage-check")
+@platform_required(write=True)
+def storage_check():
+    """Save, read back and delete a test file, and say in plain words what (if anything) is wrong."""
+    from app.services.storage import check_round_trip
+    ok, message = check_round_trip()
+    audit.record("platform.storage_checked", actor=g.user, tenant_id=None, ok=ok)
+    db.session.commit()
+    flash(message, "success" if ok else "danger")
+    return redirect(url_for("platform.index") + "#storage")
 
 
 @bp.get("/churches")
