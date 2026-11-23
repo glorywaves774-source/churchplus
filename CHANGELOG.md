@@ -1,5 +1,26 @@
 # Changelog
 
+## 1.2.5 – Invitations work even when email isn't set up
+Inviting someone, or pressing **Resend**, showed an error page on the live site, because email
+hadn't been set up there yet and the failed email stopped the whole page.
+
+* **Invitations are never lost:** the person is added and the page carries on, whether email is
+  set up or not.
+* **If the email can't be sent, ChurchPlus says so and helps.**
+  * New people: you get their one-time set-up link (valid 3 days) to send yourself, for example
+    by WhatsApp. A **Copy link** button sits under it, and the message stays until you close it.
+  * People who already have an account: you're told they can simply sign in.
+* This covers team invitations, **Resend**, member-portal invitations and member-church
+  invitations.
+* **Other emails also fail gracefully:**
+  * New church sign-up works without email and explains that the confirmation link can be
+    requested again under *My account*.
+  * "Forgot password" gives its usual answer.
+* The reason an email failed (email not set up, or the mail server refusing) is written to the
+  server log.
+* 8 new automated tests.
+
+
 ## 1.2.4 – Menus no longer hidden behind cards
 * The **⋯** menu (for example next to **Edit** on a member's page) could be partly covered by
   the card below it, hiding items such as *Giving statement* and *Download personal data*. Open

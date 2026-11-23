@@ -241,10 +241,11 @@ def invite(public_id: str):
     db.session.flush()
     audit.record("portal.invited", entity=m, actor=g.user, name=m.display_name)
     db.session.commit()
-    from app.auth.team import _invite_link
-    mailer.send(email, f"Your {g.tenant.name} member portal", "portal_invite", member=m, church=g.tenant,
-                link=_invite_link(user), is_new=user.password_hash is None)
-    flash(f"Invitation sent to {email}.", "success")
+    from app.auth.team import _invite_link, flash_invite_result
+    link = _invite_link(user)
+    sent = mailer.try_send(email, f"Your {g.tenant.name} member portal", "portal_invite", member=m, church=g.tenant,
+                           link=link, is_new=user.password_hash is None)
+    flash_invite_result(sent, user, link, f"Invitation sent to {email}.")
     return redirect(url_for("members.profile", public_id=public_id))
 
 

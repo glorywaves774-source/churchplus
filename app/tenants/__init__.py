@@ -264,9 +264,10 @@ def member_church_create():
             link = base + url_for("auth.set_password", token=tokens.make(admin, "set_password"))
         else:
             link = base + url_for("auth.login")
-        mailer.send(admin.email, f"You have been invited to manage {church.name} on ChurchPlus", "member_church_invite",
-                    admin=admin, church=church, hq=g.tenant, link=link, is_new=is_new)
-        flash(f"{church.name} added. An invitation has been emailed to {admin.email}.", "success")
+        sent = mailer.try_send(admin.email, f"You have been invited to manage {church.name} on ChurchPlus",
+                               "member_church_invite", admin=admin, church=church, hq=g.tenant, link=link, is_new=is_new)
+        from app.auth.team import flash_invite_result
+        flash_invite_result(sent, admin, link, f"{church.name} added. An invitation has been emailed to {admin.email}.")
         return redirect(url_for("tenants.member_churches"))
     return render_template("tenants/member_church_form.html", form=form,
                            breadcrumbs=[("Member churches", url_for("tenants.member_churches")), ("Add church", None)])

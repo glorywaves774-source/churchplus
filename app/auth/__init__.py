@@ -69,9 +69,9 @@ def _start_session(user: User, remember: bool = False) -> str:
     return url_for("auth.choose_church")
 
 
-def send_verification(user: User) -> None:
+def send_verification(user: User) -> bool:
     link = _base_url() + url_for("auth.verify_email", token=tokens.make(user, "verify_email"))
-    mailer.send(user.email, "Confirm your email address for ChurchPlus", "verify_email", user=user, link=link)
+    return mailer.try_send(user.email, "Confirm your email address for ChurchPlus", "verify_email", user=user, link=link)
 
 
 # --------------------------------------------------------------------------- #
@@ -210,8 +210,11 @@ def register():
                 tenant_name = tenant.name
             _start_session(owner)
             select_church(tenant_id)
-            send_verification(owner)
-            flash(f"Welcome to ChurchPlus! {tenant_name} is ready. We've sent a link to confirm your email.", "success")
+            if send_verification(owner):
+                flash(f"Welcome to ChurchPlus! {tenant_name} is ready. We've sent a link to confirm your email.", "success")
+            else:
+                flash(f"Welcome to ChurchPlus! {tenant_name} is ready. We couldn't send the email confirmation "
+                      "link just now. You can ask for it again under My account.", "success")
             return redirect(url_for("dashboard.index"))
     return render_template("auth/register.html", form=form)
 
@@ -229,7 +232,7 @@ def forgot_password():
             user = db.session.query(User).filter_by(email=email).one_or_none()
         if user is not None and user.is_active:
             link = _base_url() + url_for("auth.reset_password", token=tokens.make(user, "reset_password"))
-            mailer.send(user.email, "Reset your ChurchPlus password", "reset_password", user=user, link=link)
+            mailer.try_send(user.email, "Reset your ChurchPlus password", "reset_password", user=user, link=link)
             with tenant_bypass():
                 audit.record("auth.password_reset_requested", tenant_id=None, entity=user)
                 db.session.commit()
@@ -294,8 +297,10 @@ def verify_email(token: str):
 @limiter.limit("3 per hour")
 def resend_verification():
     if g.user.email_verified_at is None:
-        send_verification(g.user)
-        flash(f"A new confirmation link has been sent to {g.user.email}.", "info")
+        if send_verification(g.user):
+            flash(f"A new confirmation link has been sent to {g.user.email}.", "info")
+        else:
+            flash("The confirmation email couldn't be sent just now. Please try again later.", "warning")
     return redirect(request.referrer if (request.referrer or "").startswith(request.host_url) else url_for("dashboard.index"))
 
 

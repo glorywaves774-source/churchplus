@@ -88,6 +88,19 @@ def _invite_link(user: User) -> str:
     return _base_url() + url_for("auth.login")
 
 
+def flash_invite_result(sent: bool, user: User, link: str, sent_message: str) -> None:
+    """Tell the inviter what happened. If the email couldn't go out, the invitation still stands:
+    give a new person their set-up link to pass on, or tell an existing user to sign in as usual."""
+    if sent:
+        flash(sent_message, "success")
+    elif user.password_hash is None:
+        flash(f"{user.email} has been added, but the invitation email couldn't be sent because email isn't "
+              f"working on ChurchPlus yet. Send them this link yourself (it works once, for 3 days): {link}", "warning")
+    else:
+        flash(f"{user.email} has been added, but the email couldn't be sent. They already have a ChurchPlus "
+              f"account, so they can sign in as usual at {link}", "warning")
+
+
 # --------------------------------------------------------------------------- #
 # Users
 # --------------------------------------------------------------------------- #
@@ -154,10 +167,11 @@ def invite_user():
                 audit.record("user.invited", entity=account, actor=g.user, name=user.full_name,
                              roles=[r.slug for r in roles])
                 db.session.commit()
-                mailer.send(user.email, f"You have been invited to {g.tenant.name} on ChurchPlus", "user_invite",
-                            user=user, church=g.tenant, inviter=g.user, link=_invite_link(user),
-                            is_new=user.password_hash is None, roles=roles)
-                flash(f"Invitation sent to {user.email}.", "success")
+                link = _invite_link(user)
+                sent = mailer.try_send(user.email, f"You have been invited to {g.tenant.name} on ChurchPlus",
+                                       "user_invite", user=user, church=g.tenant, inviter=g.user, link=link,
+                                       is_new=user.password_hash is None, roles=roles)
+                flash_invite_result(sent, user, link, f"Invitation sent to {user.email}.")
                 return redirect(url_for("auth.users"))
     return render_template("auth/user_form.html", form=form, roles=all_roles, selected=selected, account=None,
                            grantable=grantable,
@@ -242,10 +256,11 @@ def remove_user(public_id: str):
 def resend_invite(public_id: str):
     account = _get_account(public_id)
     user = account.user
-    mailer.send(user.email, f"You have been invited to {g.tenant.name} on ChurchPlus", "user_invite",
-                user=user, church=g.tenant, inviter=g.user, link=_invite_link(user),
-                is_new=user.password_hash is None, roles=account.roles)
-    flash(f"Invitation sent again to {user.email}.", "success")
+    link = _invite_link(user)
+    sent = mailer.try_send(user.email, f"You have been invited to {g.tenant.name} on ChurchPlus", "user_invite",
+                           user=user, church=g.tenant, inviter=g.user, link=link,
+                           is_new=user.password_hash is None, roles=account.roles)
+    flash_invite_result(sent, user, link, f"Invitation sent again to {user.email}.")
     return redirect(url_for("auth.users"))
 
 

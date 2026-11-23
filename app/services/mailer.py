@@ -27,8 +27,15 @@ class Mail:
     meta: dict = field(default_factory=dict)
 
 
+class MailError(Exception):
+    """An email couldn't be sent (email not set up, or the mail server refused or is unreachable)."""
+
+
 def send(to: str, subject: str, template: str, **context) -> Mail:
-    """Render ``templates/email/<template>.txt`` (and ``.html`` if present) and send it."""
+    """Render ``templates/email/<template>.txt`` (and ``.html`` if present) and send it.
+
+    Raises MailError with a plain-language reason when the email can't be sent.
+    """
     text = render_template(f"email/{template}.txt", **context)
     try:
         html = render_template(f"email/{template}.html", **context)
@@ -37,11 +44,27 @@ def send(to: str, subject: str, template: str, **context) -> Mail:
     mail = Mail(to=to, subject=subject, text=text, html=html, meta={"template": template})
     backend = current_app.config.get("MAIL_BACKEND", "console")
     if backend == "smtp":
-        _send_smtp(mail)
+        if not current_app.config.get("MAIL_SMTP_HOST"):
+            current_app.logger.error("Email not sent (%s): MAIL_BACKEND is smtp but MAIL_SMTP_HOST is empty", template)
+            raise MailError("Email isn't set up for ChurchPlus yet.")
+        try:
+            _send_smtp(mail)
+        except (smtplib.SMTPException, OSError) as exc:
+            current_app.logger.exception("Email not sent (%s) via %s", template, current_app.config.get("MAIL_SMTP_HOST"))
+            raise MailError("The email server didn't accept the message.") from exc
     else:
         outbox.append(mail)
         current_app.logger.info("Email (console) to=%s subject=%s\n%s", to, subject, text)
     return mail
+
+
+def try_send(to: str, subject: str, template: str, **context) -> bool:
+    """Send an email; return False instead of failing when it can't be sent (the reason is logged)."""
+    try:
+        send(to, subject, template, **context)
+        return True
+    except MailError:
+        return False
 
 
 def _send_smtp(mail: Mail) -> None:  # pragma: no cover - needs a mail server

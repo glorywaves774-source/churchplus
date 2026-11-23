@@ -223,7 +223,29 @@
     if (tpl) { icon.innerHTML = tpl.innerHTML; }
     var msg = document.createElement("div");
     msg.className = "toast-msg";
-    msg.textContent = message;
+    // A web address in the message becomes a real link with a Copy button (built without innerHTML).
+    var found = /(https?:\/\/[^\s]+)/.exec(message || "");
+    var url = found ? found[1].replace(/[.,;)]+$/, "") : null;
+    if (url) {
+      var at = message.indexOf(url);
+      msg.appendChild(document.createTextNode(message.slice(0, at)));
+      var a = document.createElement("a");
+      a.href = url; a.textContent = url; a.rel = "noopener"; a.className = "toast-link";
+      msg.appendChild(a);
+      msg.appendChild(document.createTextNode(message.slice(at + url.length)));
+      if (navigator.clipboard && window.isSecureContext) {
+        var copy = document.createElement("button");
+        copy.type = "button";
+        copy.className = "btn btn-sm toast-copy";
+        copy.textContent = "Copy link";
+        copy.addEventListener("click", function () {
+          navigator.clipboard.writeText(url).then(function () { copy.textContent = "Copied"; }, function () {});
+        });
+        msg.appendChild(copy);
+      }
+    } else {
+      msg.textContent = message;
+    }
     var close = document.createElement("button");
     close.type = "button";
     close.className = "btn btn-ghost btn-icon btn-sm";
@@ -233,7 +255,8 @@
     stack.appendChild(el);
     function dismiss() { el.classList.add("leaving"); setTimeout(function () { el.remove(); }, 260); }
     close.addEventListener("click", dismiss);
-    if (kind !== "danger" && kind !== "error") { setTimeout(dismiss, 5000); }
+    // Errors and messages carrying a link stay until closed, so there's time to read and copy them.
+    if (kind !== "danger" && kind !== "error" && !url) { setTimeout(dismiss, 5000); }
   }
   window.ChurchPlus = window.ChurchPlus || {};
   window.ChurchPlus.toast = toast;
