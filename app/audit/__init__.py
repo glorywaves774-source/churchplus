@@ -11,6 +11,7 @@ from sqlalchemy import or_
 from app.extensions import db
 from app.models import AuditLog, User
 from app.services.audit import CATEGORIES, describe
+from app.services.members import safe_cell
 from app.utils.context import permission_required
 from app.utils.tenancy import tenant_bypass
 
@@ -59,10 +60,6 @@ def index():
                            params=params, breadcrumbs=[("Administration", None), ("Audit trail", None)])
 
 
-def safe_cell(value) -> str:
-    """Stop spreadsheet formula injection when the CSV is opened in Excel."""
-    text = "" if value is None else str(value)
-    return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 
 @bp.get("/audit/export.csv")

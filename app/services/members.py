@@ -6,6 +6,7 @@ import io
 import re
 from dataclasses import dataclass, field
 from datetime import date, datetime
+from decimal import Decimal
 
 from flask import abort, g, url_for
 from sqlalchemy import extract, func, or_
@@ -374,8 +375,21 @@ def export_rows(members: list[Member]) -> list[list]:
     return rows
 
 
+_PLAIN_NEGATIVE = re.compile(r"-\d[\d,]*(\.\d+)?")
+
+
 def safe_cell(value) -> str:
+    """Stop spreadsheet formula injection, without turning negative amounts into text.
+
+    A value starting with = + - @ tab or return could run as a formula in Excel, so it gets
+    a leading apostrophe. Real numbers, and text that is only a negative number such as
+    "-1,250.00", can't run anything and stay as they are so spreadsheets can still add them up.
+    """
+    if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool):
+        return str(value)
     text = "" if value is None else str(value)
+    if _PLAIN_NEGATIVE.fullmatch(text):
+        return text
     return "'" + text if text[:1] in ("=", "+", "-", "@", "\t", "\r") else text
 
 

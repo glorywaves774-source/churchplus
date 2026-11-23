@@ -19,4 +19,21 @@
     {% endfor %}
   </div>
 </section>
+{# Phones: the grid shows each event as a coloured bar, so list the month's events in full below it. #}
+<section class="card cal-agenda" aria-labelledby="cal-agenda-title">
+  <h2 class="cal-agenda-title" id="cal-agenda-title">{{ month.strftime('%B') }} at a glance</h2>
+  {% set ns = namespace(any=false) %}
+  <ul class="cal-agenda-list">
+  {% for day in days if day.month == month.month %}
+    {% for e in by_day.get(day, []) %}{% set ns.any = true %}
+    <li><a class="cal-agenda-item{% if e.status.value == 'cancelled' %} cancelled{% endif %}" href="{{ url_for('events.detail', public_id=e.public_id) }}">
+      <span class="cal-agenda-date"><strong>{{ day.day }}</strong><small>{{ day.strftime('%a') }}</small></span>
+      <span class="cal-agenda-text"><span class="cal-agenda-name">{{ e.title }}</span><small>{{ e.starts_at.strftime('%H:%M') }}{% if e.status.value == 'cancelled' %} · Cancelled{% endif %}</small></span>
+      {{ icon('chevron-right', 16) }}
+    </a></li>
+    {% endfor %}
+  {% endfor %}
+  </ul>
+  {% if not ns.any %}<p class="cal-agenda-empty">Nothing on the calendar this month.</p>{% endif %}
+</section>
 {% endblock %}

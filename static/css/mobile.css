@@ -1,6 +1,11 @@
 /* Phone and tablet layout. Loaded last. */
 html, body { max-width: 100%; overflow-x: hidden; }
 input, select, textarea { font-size: 16px; } /* stops iPhone zoom on focus */
+/* The menu filter and top-bar search set their own 14px size; lift them on phones,
+   tablets and any touch screen too, or Safari zooms the page when they are tapped. */
+@media (max-width: 1024px), (pointer: coarse) {
+  .nav-filter input, .global-search input { font-size: 16px; }
+}
 
 body {
   padding-left: env(safe-area-inset-left);

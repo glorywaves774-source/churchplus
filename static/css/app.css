@@ -589,3 +589,23 @@ code { font-size: 12.5px; background: var(--cp-surface-sunken); border-radius: 6
 .report-dates { display: contents; }
 .report-dates[hidden] { display: none; }
 @media (max-width: 760px) { .report-filters .select, .report-filters .input { flex: 1 1 140px; } }
+
+/* Calendar month list: phones only (the grid shows each event as a coloured bar there). */
+.cal-agenda { display: none; }
+@media (max-width: 760px) {
+  .cal-agenda { display: block; margin-top: 16px; padding: 14px 6px 6px; }
+  .cal-agenda-title { font-size: 15px; font-weight: 700; margin: 0 10px 8px; }
+  .cal-agenda-list { list-style: none; margin: 0; padding: 0; }
+  .cal-agenda-item { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 8px 10px; border-radius: 12px; color: var(--cp-text); text-decoration: none; }
+  .cal-agenda-item:hover, .cal-agenda-item:focus-visible { background: var(--cp-surface-sunken); }
+  .cal-agenda-date { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 12px; background: var(--cp-accent-soft); color: var(--cp-accent); line-height: 1.05; }
+  .cal-agenda-date strong { font-size: 16px; }
+  .cal-agenda-date small { font-size: 10.5px; font-weight: 600; text-transform: uppercase; }
+  .cal-agenda-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+  .cal-agenda-name { font-weight: 600; overflow-wrap: anywhere; }
+  .cal-agenda-text small { color: var(--cp-text-subtle); font-size: 13px; }
+  .cal-agenda-item.cancelled .cal-agenda-name { text-decoration: line-through; opacity: .7; }
+  .cal-agenda-item .icon { color: var(--cp-text-subtle); flex: none; }
+  .cal-agenda-empty { margin: 4px 10px 10px; color: var(--cp-text-subtle); }
+}
+@media print { .cal-agenda { display: none !important; } }

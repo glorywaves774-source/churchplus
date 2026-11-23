@@ -1,5 +1,33 @@
 # Changelog
 
+## 1.1.1 – Fixes from a full check
+
+A full check of 1.1.0 covered:
+* the test suite on SQLite and PostgreSQL, and the database migrations;
+* every page as a visitor, a member, church staff and the platform team, at five phone widths
+  and on a computer, in light and dark mode;
+* every "add" form, all 37 downloads (CSV, Excel and PDF), installing the app and offline mode;
+* a security and dependency scan.
+
+There were no crashes, broken pages or security problems. Three things needed fixing:
+
+* **iPhones no longer zoom in when you tap Search or "Find a page".** Both boxes used text
+  slightly too small for Safari, which zooms the whole page in when you tap one. They now use the
+  same size as every other field on phones, tablets and touch screens. Computers look the same
+  as before.
+* **The events calendar is usable on phones.** On a phone each event is only a thin coloured bar,
+  far too small to tap and with no name shown. A new "*Month* at a glance" list under the calendar
+  now shows every event that month: its date, name and time, and whether it was cancelled. Tap one
+  to open it. Computers keep the full calendar as before.
+* **Negative amounts stay numbers in spreadsheet downloads.** To protect against harmful formulas,
+  downloads add an apostrophe in front of anything that starts with "-". This also turned
+  negative amounts, such as a deficit on the income statement or an overdrawn ledger balance, into
+  text that Excel couldn't add up. Real numbers are now left alone. Anything that could act as a
+  formula is still blocked. The audit-trail download now uses the same protection.
+
+19 new automated tests (340 in total) cover these fixes.
+
+
 ## 1.1.0 – Aurora UI
 * New look: a soft, slowly drifting "northern lights" glow (purple, teal, gold, rose and blue)
   behind frosted-glass panels, in light and dark mode, on every page – workspace, member portal,

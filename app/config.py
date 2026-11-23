@@ -32,7 +32,7 @@ def normalise_database_url(url: str | None) -> str | None:
 class BaseConfig:
     APP_NAME = "ChurchPlus"
     COMPANY_NAME = "Kayron Global Tech Services"
-    APP_VERSION = "1.1.0"  # Aurora UI
+    APP_VERSION = "1.1.1"  # Aurora UI + fixes
 
     SECRET_KEY = os.environ.get("SECRET_KEY")
 
