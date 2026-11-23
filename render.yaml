@@ -40,8 +40,8 @@ envVarGroups:
         sync: false
       - key: MAIL_SMTP_PASSWORD
         sync: false
-      - key: SMS_BACKEND                   # hubtel | arkesel | console
-        value: hubtel
+      - key: SMS_BACKEND                   # arkesel | hubtel | console
+        value: arkesel
       - key: HUBTEL_SMS_CLIENT_ID
         sync: false
       - key: HUBTEL_SMS_CLIENT_SECRET
