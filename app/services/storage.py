@@ -160,8 +160,10 @@ def explain_error(exc: Exception) -> str:
         return "The access key ID is not recognised. Copy S3_ACCESS_KEY_ID again from your storage provider."
     if "SignatureDoesNotMatch" in text:
         return "The secret key does not match the access key. Copy S3_SECRET_ACCESS_KEY again (no spaces)."
-    if "NoSuchBucket" in text:
-        return "The bucket was not found. Check S3_BUCKET (and S3_ENDPOINT_URL for Cloudflare R2)."
+    if "NoSuchBucket" in text or code in ("404", "NotFound") or "(404)" in text:
+        return ("The bucket was not found. S3_BUCKET must match the bucket's name exactly (lower case, no spaces). "
+                "For Cloudflare R2, copy S3_ENDPOINT_URL from the bucket's Settings → S3 API: buckets created in the EU "
+                "use an address ending in .eu.r2.cloudflarestorage.com.")
     if "AccessDenied" in text or "Forbidden" in text or "403" in text:
         return "The keys work but are not allowed to use this bucket. Give them read and write access to it."
     if "EndpointConnectionError" in text or "Could not connect" in text or "ConnectTimeout" in text:

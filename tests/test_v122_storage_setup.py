@@ -163,3 +163,9 @@ def test_check_storage_command(app, fake_s3):
 def test_bucket_address_pasted_as_endpoint_is_accepted():
     assert storage._endpoint_base("https://abc123.r2.cloudflarestorage.com/churchplus-files/") == "https://abc123.r2.cloudflarestorage.com"
     assert storage.config_problem({**S3, "S3_ENDPOINT_URL": "https://0123456789abcdef0123456789abcdef.r2.cloudflarestorage.com/churchplus-files"}) is None
+
+
+def test_404_from_r2_is_explained_as_bucket_not_found():
+    from botocore.exceptions import ClientError
+    err = ClientError({"Error": {"Code": "404", "Message": "Not Found"}}, "PutObject")
+    assert "bucket was not found" in storage.explain_error(err)
