@@ -609,3 +609,83 @@ code { font-size: 12.5px; background: var(--cp-surface-sunken); border-radius: 6
   .cal-agenda-empty { margin: 4px 10px 10px; color: var(--cp-text-subtle); }
 }
 @media print { .cal-agenda { display: none !important; } }
+
+/* ---------- Camera: passport photos of members and leaders ---------- */
+dialog.camera-modal { width: min(460px, calc(100vw - 24px)); display: none; flex-direction: column; overflow: hidden; }
+dialog.camera-modal[open] { display: flex; }
+.camera-modal .modal-head h3 { min-width: 0; overflow-wrap: anywhere; }
+.camera-stage {
+  position: relative; margin: 14px 22px 0; aspect-ratio: 4 / 5; max-height: min(60dvh, 520px); align-self: center; width: auto;
+  height: min(60dvh, 520px); max-width: calc(100% - 44px); border-radius: 20px; overflow: hidden; background: #0b1020; flex: none;
+}
+@supports not (aspect-ratio: 4 / 5) { .camera-stage { height: 420px; width: 336px; } }
+.camera-video, .camera-still { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.camera-video.is-mirrored { transform: scaleX(-1); }
+.camera-video[hidden], .camera-still[hidden] { display: none; }
+.camera-guide { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.camera-guide[hidden] { display: none; }
+.camera-oval {
+  width: 62%; height: 64%; margin-top: -6%; border-radius: 50%; border: 2px dashed rgba(255, 255, 255, .85);
+  box-shadow: 0 0 0 999px rgba(4, 8, 22, .38);
+}
+.camera-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+.camera-flash.is-on { animation: camera-flash .35s ease-out; }
+@keyframes camera-flash { from { opacity: .85; } to { opacity: 0; } }
+.camera-message { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 24px; text-align: center; color: #e8ecf8; font-size: 15px; line-height: 1.45; }
+.camera-message[hidden] { display: none; }
+.camera-message.is-loading .icon { animation: camera-pulse 1.2s ease-in-out infinite; }
+@keyframes camera-pulse { 50% { opacity: .35; } }
+.camera-message p { margin: 0; max-width: 30ch; }
+.camera-tip { margin: 10px 22px 0; min-height: 2.6em; font-size: 14px; color: var(--cp-text-muted); text-align: center; line-height: 1.35; }
+.camera-tip.is-warning { color: var(--cp-warning); font-weight: 600; }
+.camera-bar { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 22px 20px; flex-wrap: wrap; }
+.camera-bar[hidden], .camera-review[hidden], .camera-done[hidden] { display: none; }
+.camera-bar .camera-side { flex: 1 1 0; min-width: 0; max-width: 140px; justify-content: center; }
+.camera-side.is-unavailable { visibility: hidden; }
+.camera-side input[type=file] { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.camera-side:focus-within { outline: 2px solid var(--cp-accent); outline-offset: 2px; }
+.camera-shutter {
+  flex: none; width: 72px; height: 72px; border-radius: 50%; border: 4px solid var(--cp-accent); background: transparent;
+  display: grid; place-items: center; cursor: pointer; padding: 0;
+}
+.camera-shutter span { width: 54px; height: 54px; border-radius: 50%; background: var(--cp-accent); transition: transform .12s var(--cp-ease); }
+.camera-shutter:active span { transform: scale(.88); }
+.camera-shutter:disabled { opacity: .4; cursor: default; }
+.camera-shutter:focus-visible { outline: 3px solid var(--cp-accent); outline-offset: 3px; }
+.camera-review { padding-top: 4px; }
+.camera-consent { display: flex; align-items: flex-start; margin: 4px 22px 0; padding: 12px 14px; border-radius: 14px; background: var(--cp-accent-soft); line-height: 1.4; }
+.camera-consent input { flex: none; margin-top: 1px; }
+.camera-done-text { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 6px 22px 0; color: var(--cp-success); font-weight: 600; text-align: center; }
+.btn.is-busy { opacity: .7; pointer-events: none; }
+@media (max-width: 760px) {
+  dialog.camera-modal { max-height: calc(100dvh - 16px); }
+  .camera-stage { height: min(52dvh, 460px); max-height: min(52dvh, 460px); margin-top: 10px; }
+  .camera-tip { margin-top: 8px; font-size: 13.5px; }
+  .camera-bar { padding: 8px 16px calc(14px + env(safe-area-inset-bottom)); gap: 10px; }
+}
+@media (max-height: 560px) { .camera-stage { height: 46dvh; max-height: 46dvh; } }
+@media (prefers-reduced-motion: reduce) { .camera-flash.is-on, .camera-message.is-loading .icon { animation: none; } }
+@media print { dialog.camera-modal { display: none !important; } }
+
+/* Profile photo with its camera button */
+.photo-slot { position: relative; flex: none; }
+.photo-slot .photo-slot-btn { position: absolute; right: -6px; bottom: -6px; border-radius: 50%; box-shadow: var(--cp-shadow); }
+.photo-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Photo day */
+.photo-progress { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+progress.photo-progress-bar { flex: 1 1 200px; width: auto; height: 10px; }
+.photo-grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(178px, 1fr)); gap: 14px; }
+.photo-person { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 12px 14px; text-align: center; border-radius: 18px; }
+.photo-person .member-photo, .photo-person .member-photo-placeholder { width: 96px; height: 120px; font-size: 26px; }
+.photo-person-name { font-weight: 650; line-height: 1.25; overflow-wrap: anywhere; }
+.photo-person-meta { font-size: 13px; color: var(--cp-text-muted); overflow-wrap: anywhere; }
+.photo-person-roles { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.photo-person .btn { margin-top: auto; width: 100%; justify-content: center; }
+.photo-person[data-photo-done] { outline: 2px solid var(--cp-success); outline-offset: -2px; }
+.photo-person[data-photo-done] .photo-person-name::after { content: " ✓"; color: var(--cp-success); }
+@media (max-width: 420px) {
+  .photo-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .photo-person { padding: 12px 8px; }
+  .photo-person .member-photo, .photo-person .member-photo-placeholder { width: 80px; height: 100px; font-size: 22px; }
+}

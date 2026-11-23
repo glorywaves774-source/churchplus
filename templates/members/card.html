@@ -8,7 +8,7 @@
     <div class="id-card" role="img" aria-label="Membership card for {{ member.display_name }}">
       <div class="id-card-head">{% if g.tenant.logo_key %}<img class="brand-mark church-logo-img" src="{{ url_for('tenants.logo') }}" alt="">{% else %}<span class="brand-mark" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"><path d="M12 4v16M6 10h12"/></svg></span>{% endif %}<span translate="no">{{ g.tenant.name }}</span></div>
       <div class="id-card-body">
-        {% if member.photo_key %}<img src="{{ url_for('members.photo', public_id=member.public_id) }}" alt="">{% else %}<span class="member-photo-placeholder" translate="no">{{ member.display_name|initials }}</span>{% endif %}
+        {% if member.photo_key %}<img src="{{ member_photo_url(member) }}" alt="">{% else %}<span class="member-photo-placeholder" translate="no">{{ member.display_name|initials }}</span>{% endif %}
         <div class="who" translate="no">
           <strong>{{ member.full_name }}</strong>
           <span class="num">{{ member.membership_number }}</span><br>

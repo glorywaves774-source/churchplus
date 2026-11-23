@@ -16,6 +16,14 @@ from tests.test_design_system import assert_csp_clean
 
 PW = "Correct-Horse-9"
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+
+
+def real_png(size=(60, 75), colour=(120, 90, 200)) -> bytes:
+    """A genuine image: photos are now decoded and re-saved, so a bare file signature is refused."""
+    from PIL import Image
+    out = io.BytesIO()
+    Image.new("RGB", size, colour).save(out, "PNG")
+    return out.getvalue()
 PDF = b"%PDF-1.7\n" + b"0" * 64
 
 
@@ -217,9 +225,9 @@ def test_family_create_join_and_leave(client, db, grace):
 def test_photo_and_documents(client, db, grace):
     new_member(client)
     p = pid(db, grace, first_name="Abena")
-    client.post(f"/members/{p}/photo", data={"photo": (io.BytesIO(PNG), "passport.png")}, content_type="multipart/form-data")
+    client.post(f"/members/{p}/photo", data={"photo": (io.BytesIO(real_png()), "passport.png")}, content_type="multipart/form-data")
     res = client.get(f"/members/{p}/photo")
-    assert res.status_code == 200 and res.data == PNG
+    assert res.status_code == 200 and res.data[:3] == b"\xff\xd8\xff" and res.mimetype == "image/jpeg"
     client.post(f"/members/{p}/documents", data={"title": "Baptism certificate", "category": "baptism",
                                                  "file": (io.BytesIO(PDF), "baptism.pdf")}, content_type="multipart/form-data")
     with tenant_context(grace):
@@ -241,7 +249,7 @@ def test_delete_member_erases_files(app, client, db, grace):
     import os
     new_member(client)
     p = pid(db, grace, first_name="Abena")
-    client.post(f"/members/{p}/photo", data={"photo": (io.BytesIO(PNG), "p.png")}, content_type="multipart/form-data")
+    client.post(f"/members/{p}/photo", data={"photo": (io.BytesIO(real_png()), "p.png")}, content_type="multipart/form-data")
     key = member(db, grace, public_id=p).photo_key
     path = os.path.join(app.config["LOCAL_STORAGE_PATH"], key)
     assert os.path.exists(path)

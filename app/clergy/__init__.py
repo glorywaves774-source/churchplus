@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 
-from flask import Blueprint, abort, flash, g, redirect, render_template, request, send_file, url_for
+from flask import Blueprint, abort, flash, g, jsonify, redirect, render_template, request, send_file, url_for
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileAllowed, FileField
 from sqlalchemy import func, or_
@@ -15,7 +15,8 @@ from app.models import (
     Department, EmploymentType, LeaveRequest, LeaveStatus, LeaveType, Member, StaffCategory, StaffMember,
     StaffRecord, StaffRecordKind, StaffStatus,
 )
-from app.services import audit, members as member_svc, operations as ops, storage
+from app.members.forms import PhotoForm
+from app.services import audit, members as member_svc, operations as ops, photos, storage
 from app.services.storage import StorageError
 from app.utils.context import permission_required
 
@@ -188,8 +189,66 @@ def edit(public_id: str):
 def profile(public_id: str):
     s = _get(public_id)
     return render_template("clergy/profile.html", staff=s, record_form=RecordForm(), leave_form=LeaveForm(),
+                           photo_form=PhotoForm(), photo_url=photos.staff_photo_url(s),
                            taken=ops.leave_taken(s),
                            breadcrumbs=[("Clergy & staff", url_for("clergy.index")), (s.display_name, None)])
+
+
+@bp.post("/clergy/<public_id>/photo")
+@permission_required("clergy.edit")
+def upload_photo(public_id: str):
+    s = _get(public_id)
+    back = url_for("clergy.profile", public_id=public_id)
+    nxt = request.form.get("next") or ""
+    if nxt.startswith("/") and not nxt.startswith("//"):
+        back = nxt
+    wants_json = request.accept_mimetypes.best == "application/json"
+
+    def reply(ok, message, status=200, url=None):
+        if wants_json:
+            return jsonify(ok=ok, message=message, photo_url=url), status
+        flash(message, "success" if ok else "danger")
+        return redirect(back)
+
+    form = PhotoForm()
+    if not form.validate_on_submit():
+        errors = list(form.photo.errors) or [e for errs in form.errors.values() for e in errs] or ["Choose a photo."]
+        return reply(False, errors[0], 400)
+    owner = photos.owner_for_staff(s)          # a linked member record holds the one photo for this person
+    try:
+        old = photos.replace(owner.record, form.photo.data, category="member-photos" if owner.is_member else "staff-photos")
+    except StorageError as e:
+        return reply(False, str(e), 400)
+    audit.record("staff.photo_updated", entity=s, actor=g.user, name=s.display_name,
+                 source="camera" if request.form.get("source") == "camera" else "upload")
+    db.session.commit()
+    if old:
+        storage.delete(old)
+    return reply(True, f"Photo of {s.display_name} saved.", url=photos.staff_photo_url(s))
+
+
+@bp.post("/clergy/<public_id>/photo/remove")
+@permission_required("clergy.edit")
+def remove_photo(public_id: str):
+    s = _get(public_id)
+    owner = photos.owner_for_staff(s)
+    old = owner.record.photo_key
+    if old:
+        owner.record.photo_key = None
+        audit.record("staff.photo_removed", entity=s, actor=g.user, name=s.display_name)
+        db.session.commit()
+        storage.delete(old)
+        flash("Photo removed.", "success")
+    return redirect(url_for("clergy.profile", public_id=public_id))
+
+
+@bp.get("/clergy/<public_id>/photo")
+@permission_required("clergy.view")
+def photo(public_id: str):
+    key = photos.staff_photo_key(_get(public_id))
+    if not key:
+        abort(404)
+    return photos.send(key)
 
 
 @bp.post("/clergy/<public_id>/records")

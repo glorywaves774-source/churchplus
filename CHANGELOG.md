@@ -1,5 +1,52 @@
 # Changelog
 
+## 1.2.0 – Camera for member and leader photos
+
+ChurchPlus now has its own camera for taking passport photos of members and leaders. Photos are
+saved straight onto each person's record, with no separate app and no file transfers.
+
+### New
+* **Take photo** on every member record and clergy/staff record: a camera button sits on the photo.
+  * An oval guide shows where the face goes.
+  * Phones can switch between the front and back cameras.
+  * Photos are saved in the same passport shape used on profiles and ID cards.
+* **Check before saving.** You see the photo first, with a warning if it looks too dark or too
+  bright, and can **Retake** it. Saving needs a tick confirming the person agrees to their photo
+  being kept.
+* **Photo day** (Members → Photo day):
+  * Lists everyone who still needs a photo, with a progress bar.
+  * Can be filtered to **leaders only** (clergy, staff and department heads), by branch, or by name.
+  * After each photo, **Next person** moves on without closing the camera, so a queue after
+    service goes quickly.
+  * Leaders' roles show on their cards, and clergy or staff who aren't members are listed too.
+* **Leader photos.** Clergy and staff records can now have a photo. Before, only members could.
+  * Photos appear on the Clergy & staff list.
+  * Someone who is both staff and a member has one shared photo.
+* **Remove photo**, for when a person asks for it to be deleted.
+* **Works without the camera too.** If a device has no camera, the camera is blocked, or the
+  browser is old, **Choose file** still works. On phones it offers the phone's own camera or gallery.
+
+### Privacy and quality
+* **Every photo is cleaned before it is stored,** whether taken with the camera or uploaded:
+  * turned the right way up and shrunk to a sensible size;
+  * re-saved without hidden details such as the GPS location, the phone model and the time it
+    was taken. Uploads used to keep these.
+* **The camera switches off** as soon as the window closes or the app goes to the background.
+* **Permissions:**
+  * Only people who can edit members can take member photos.
+  * Only people who can edit clergy & staff can take leaders' photos.
+  * Branch staff see only their branch.
+  * Every new or removed photo is recorded in the audit trail, including whether it came from
+    the camera or a file.
+* After a retake, new photos show immediately, while unchanged photos load faster.
+
+### Behind the scenes
+* Pillow (the image library) is now listed in `requirements.txt`, so Render installs it.
+* 27 new automated tests (367 in total) on SQLite and PostgreSQL.
+* The camera was checked in a browser with a test camera at 320–440px phone widths, on a tablet
+  and on a computer, in light and dark mode, and with the keyboard open.
+
+
 ## 1.1.1 – Fixes from a full check
 
 A full check of 1.1.0 covered:

@@ -6,6 +6,7 @@
   {% if can('members.export') %}
     {{ ui.dropdown('Export', 'download', [('Excel (.xlsx)', url_for('members.export', fmt='xlsx', **params), 'table'), ('CSV', url_for('members.export', fmt='csv', **params), 'file-text')], icon_only=False) }}
   {% endif %}
+  {% if can('members.edit') %}{{ ui.button('Photo day', 'camera', href=url_for('members.photo_day')) }}{% endif %}
   {% if can('members.create') %}
     {{ ui.button('Import', 'upload', href=url_for('members.import_members')) }}
     {% if limit.allowed %}{{ ui.button('Register member', 'user-plus', 'primary', href=url_for('members.create')) }}
@@ -36,7 +37,7 @@
         <tr>
           <td>
             <div class="person">
-              {% if m.photo_key %}<img class="list-photo" src="{{ url_for('members.photo', public_id=m.public_id) }}" alt="" loading="lazy">{% else %}{{ ui.avatar(m.display_name, size='sm') }}{% endif %}
+              {% if m.photo_key %}<img class="list-photo" src="{{ member_photo_url(m) }}" alt="" loading="lazy">{% else %}{{ ui.avatar(m.display_name, size='sm') }}{% endif %}
               <div class="min-w-0"><a class="person-name" href="{{ url_for('members.profile', public_id=m.public_id) }}" translate="no">{{ m.display_name }}</a>
                 {% if m.email %}<div class="person-sub" translate="no">{{ m.email }}</div>{% endif %}</div>
             </div>

@@ -16,6 +16,7 @@ A plain-language tour for church administrators, pastors and leaders.
 | I want to… | Go to |
 |---|---|
 | Record a new member or first-timer | Members → Add member · Visitors → New first-timer |
+| Take a member's or leader's photo | Their record → camera button on the photo · Members → **Photo day** for many people |
 | Take attendance | Attendance → choose the service → tick, scan QR cards or type numbers |
 | Record tithes and offerings | Giving & finance → Record giving (a numbered receipt is created) |
 | Pay a bill | Giving & finance → Expenses → New voucher (someone else approves it) |
@@ -30,6 +31,27 @@ A plain-language tour for church administrators, pastors and leaders.
 | Get a report | Reports → choose report and period → Print, CSV, Excel or PDF |
 | Turn on the website | Church website → tick *The website is live* |
 | Pay ChurchPlus | Subscription → open the invoice → Pay now (Paystack or Hubtel) |
+
+## Taking photos of members and leaders
+ChurchPlus has its own camera, so photos go straight onto a person's record.
+
+1. Open the member (or the clergy/staff person) and tap the **camera button** on their photo.
+   The first time, the browser asks to use the camera: choose **Allow**.
+2. Fit the face inside the oval and press the **round button**. On a phone, **Switch** changes
+   between the front and back cameras.
+3. Check the photo. If it looks too dark or bright, ChurchPlus says so: tap **Retake**.
+4. Tick that the person agrees to their photo being kept, then **Save photo**.
+
+**Photo day** (Members → Photo day) lists everyone who still has no photo, with a progress bar.
+Choose **Leaders only** for clergy, staff and department heads. After each photo, **Next person**
+moves straight to the next one without closing the camera, which makes a queue after a service quick.
+
+* No camera, or camera blocked? Use **Choose file**: on a phone it offers to take a picture with
+  the phone's own camera, or pick one from the gallery. You can also upload a passport photo.
+* Every photo is trimmed to passport shape, shrunk to a sensible size and cleaned of hidden
+  details such as the location where it was taken. Photos are private to your church.
+* A clergy or staff person who is also a member has one photo, shared by both records.
+* People who only *view* members can see photos but cannot take, change or remove them.
 
 ## Member portal
 On a member's record choose **Invite to member portal** (they need an email address). They get

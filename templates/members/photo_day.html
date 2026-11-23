@@ -1,0 +1,96 @@
+{% extends "layouts/app.html" %}
+{% import "components/_macros.html" as ui with context %}
+{% import "components/_camera.html" as cam with context %}
+{% block title %}Photo day{% endblock %}
+{% block content %}
+{% call ui.page_header('Photo day', 'Take passport photos of members and leaders, one after another.') %}
+  {{ ui.button('Members', 'users', href=url_for('members.index')) }}
+{% endcall %}
+
+<section class="card mb-4">
+  <div class="card-body photo-progress">
+    <div class="min-w-0">
+      <strong>{{ '{:,}'.format(counts.with_photo) }} of {{ '{:,}'.format(counts.total) }}</strong> active members have a photo
+      <div class="meta">{{ '{:,}'.format(counts.missing) }} still to take{% if counts.leaders_missing %}, including {{ counts.leaders_missing }} leader{{ 's' if counts.leaders_missing != 1 }}{% endif %}.</div>
+    </div>
+    <progress class="progress photo-progress-bar" max="100" value="{{ counts.percent }}" aria-label="Members with a photo">{{ counts.percent }}%</progress>
+    <strong>{{ counts.percent }}%</strong>
+  </div>
+</section>
+
+<section class="card">
+  <form class="filter-bar" method="get" action="{{ url_for('members.photo_day') }}" role="search">
+    <div class="input-icon search-input">{{ icon('search', 17) }}<input class="input" type="search" name="q" value="{{ params.get('q', '') }}" placeholder="Search name or number" aria-label="Search name or number"></div>
+    <select class="select" name="who" aria-label="Who">
+      <option value="">Everyone</option>
+      <option value="leaders"{% if params.get('who') == 'leaders' %} selected{% endif %}>Leaders only</option>
+    </select>
+    <select class="select" name="show" aria-label="Photos">
+      <option value="">No photo yet</option>
+      <option value="all"{% if params.get('show') == 'all' %} selected{% endif %}>Any photo</option>
+    </select>
+    {% if branches|length > 1 %}
+    <select class="select" name="branch" aria-label="Branch">
+      <option value="">All branches</option>
+      {% for value, text in branches %}<option value="{{ value }}"{% if value == params.get('branch') %} selected{% endif %}>{{ text }}</option>{% endfor %}
+    </select>
+    {% endif %}
+    <button class="btn" type="submit">{{ icon('filter', 16) }}<span>Apply</span></button>
+  </form>
+
+  <div class="card-body">
+  <p class="meta mb-3">Tap <strong>Take photo</strong>, fit the face inside the oval and press the round button. After saving, <strong>Next person</strong> moves straight on. Leaders are clergy, staff and department heads.</p>
+
+  {% if page.items %}
+  <ul class="photo-grid" role="list">
+    {% for m in page.items %}
+    <li class="card photo-person" data-photo-card{% if m.photo_key %} data-photo-done{% endif %}>
+      {% if m.photo_key %}
+        <img class="member-photo" id="p-{{ m.public_id }}" src="{{ member_photo_url(m) }}" alt="Photo of {{ m.display_name }}" loading="lazy">
+      {% else %}
+        <span class="member-photo-placeholder" id="p-{{ m.public_id }}" translate="no" data-photo-class="member-photo" data-photo-alt="Photo of {{ m.display_name }}">{{ m.display_name|initials }}</span>
+      {% endif %}
+      <a class="photo-person-name" href="{{ url_for('members.profile', public_id=m.public_id) }}" translate="no">{{ m.display_name }}</a>
+      <span class="photo-person-meta" translate="no">{{ m.membership_number }}{% if m.branch %} · {{ m.branch.name }}{% endif %}</span>
+      {% if roles.get(m.id) %}<span class="photo-person-roles">{% for r in roles[m.id][:2] %}<span class="badge badge-gold" translate="no">{{ r }}</span>{% endfor %}</span>{% endif %}
+      {{ cam.camera_button(url_for('members.upload_photo', public_id=m.public_id), m.display_name, '#p-' ~ m.public_id, 'Retake' if m.photo_key else 'Take photo', '' if m.photo_key else 'primary', 'sm') }}
+    </li>
+    {% endfor %}
+  </ul>
+  {{ ui.pagination(page, 'members.photo_day', params) }}
+  {% else %}
+    {% if params.get('show') != 'all' and not params.get('q') %}
+      {{ ui.empty_state('Every member here has a photo', 'Choose "Any photo" to retake any of them.', 'check-circle-2') }}
+    {% else %}
+      {{ ui.empty_state('No one matches', 'Try a different name or filter.', 'search') }}
+    {% endif %}
+  {% endif %}
+  </div>
+</section>
+
+{% if can('clergy.edit') and staff_only %}
+<section class="card mt-4">
+  <div class="card-body">
+  <h3 class="mt-0">Clergy and staff without a member record</h3>
+  <p class="meta mb-3">These leaders aren't registered as members, so their photo is kept on their clergy &amp; staff record.</p>
+  <ul class="photo-grid" role="list">
+    {% for s in staff_only %}
+    {% set url = staff_photo_url(s) %}
+    <li class="card photo-person" data-photo-card{% if url %} data-photo-done{% endif %}>
+      {% if url %}
+        <img class="member-photo" id="s-{{ s.public_id }}" src="{{ url }}" alt="Photo of {{ s.display_name }}" loading="lazy">
+      {% else %}
+        <span class="member-photo-placeholder" id="s-{{ s.public_id }}" translate="no" data-photo-class="member-photo" data-photo-alt="Photo of {{ s.display_name }}">{{ s.display_name|initials }}</span>
+      {% endif %}
+      <a class="photo-person-name" href="{{ url_for('clergy.profile', public_id=s.public_id) }}" translate="no">{{ s.display_name }}</a>
+      <span class="photo-person-meta" translate="no">{{ s.staff_number }}</span>
+      <span class="photo-person-roles"><span class="badge badge-gold" translate="no">{{ s.position }}</span></span>
+      {{ cam.camera_button(url_for('clergy.upload_photo', public_id=s.public_id), s.display_name, '#s-' ~ s.public_id, 'Retake' if url else 'Take photo', '' if url else 'primary', 'sm') }}
+    </li>
+    {% endfor %}
+  </ul>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+{% block scripts %}{{ cam.camera_dialog() }}<script src="{{ url_for('static', filename='js/camera.js') }}" defer></script>{% endblock %}

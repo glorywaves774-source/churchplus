@@ -1,13 +1,17 @@
 {% extends "layouts/app.html" %}
 {% import "components/_macros.html" as ui with context %}
+{% import "components/_camera.html" as cam with context %}
 {% block title %}{{ member.display_name }}{% endblock %}
 {% block content %}
 <section class="card member-hero mb-4">
-  {% if member.photo_key %}
-    <img class="member-photo" src="{{ url_for('members.photo', public_id=member.public_id) }}" alt="Photo of {{ member.display_name }}">
-  {% else %}
-    <span class="member-photo-placeholder" translate="no">{{ member.display_name|initials }}</span>
-  {% endif %}
+  <div class="photo-slot">
+    {% if member.photo_key %}
+      <img class="member-photo" id="member-photo" src="{{ member_photo_url(member) }}" alt="Photo of {{ member.display_name }}">
+    {% else %}
+      <span class="member-photo-placeholder" id="member-photo" translate="no" data-photo-class="member-photo" data-photo-alt="Photo of {{ member.display_name }}">{{ member.display_name|initials }}</span>
+    {% endif %}
+    {% if can('members.edit') %}{{ cam.camera_button(url_for('members.upload_photo', public_id=member.public_id), member.display_name, '#member-photo', 'Take photo', 'primary', 'sm', icon_only=True, extra_class='photo-slot-btn') }}{% endif %}
+  </div>
   <div class="min-w-0">
     <h2 translate="no">{{ member.full_name }}</h2>
     <div class="meta"><span translate="no">{{ member.membership_number }}</span>{% if member.branch %} · <span translate="no">{{ member.branch.name }}</span>{% endif %}</div>
@@ -67,10 +71,18 @@
   {% if can('members.edit') %}
   <div class="grid grid-3 mt-4">
     {% call ui.card('Passport photograph', id='photo') %}
-      <form method="post" action="{{ url_for('members.upload_photo', public_id=member.public_id) }}" enctype="multipart/form-data" class="stack">
-        {{ photo_form.csrf_token }}{{ ui.field(photo_form.photo) }}
-        <button class="btn" type="submit">{{ icon('camera', 17) }}<span>Upload photo</span></button>
-      </form>
+      <div class="stack">
+        <div class="photo-actions">
+          {{ cam.camera_button(url_for('members.upload_photo', public_id=member.public_id), member.display_name, '#member-photo', 'Take photo with camera', 'primary') }}
+        </div>
+        <form method="post" action="{{ url_for('members.upload_photo', public_id=member.public_id) }}" enctype="multipart/form-data" class="stack">
+          {{ photo_form.csrf_token }}{{ ui.field(photo_form.photo) }}
+          <button class="btn" type="submit">{{ icon('cloud-upload', 17) }}<span>Upload photo</span></button>
+        </form>
+        {% if member.photo_key %}
+          {{ ui.confirm_button(url_for('members.remove_photo', public_id=member.public_id), 'Remove photo', 'This deletes ' ~ member.display_name ~ "'s photo from ChurchPlus. You can take a new one at any time.", 'Remove photo', 'trash-2', 'ghost', 'sm', 'Remove photo?') }}
+        {% endif %}
+      </div>
     {% endcall %}
     {% call ui.card('Change status', id='status') %}
       <form method="post" action="{{ url_for('members.change_status', public_id=member.public_id) }}" class="stack">
@@ -191,4 +203,7 @@
   {% endif %}
 </div>
 </div>
+{% endblock %}
+{% block scripts %}
+{% if can('members.edit') %}{{ cam.camera_dialog() }}<script src="{{ url_for('static', filename='js/camera.js') }}" defer></script>{% endif %}
 {% endblock %}

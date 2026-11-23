@@ -1,0 +1,65 @@
+{# ChurchPlus camera: take a passport-style photo of a member or leader and save it straight to
+   their record. Include camera_dialog() once on the page, then use camera_button() for each person.
+   All behaviour lives in static/js/camera.js (no inline scripts). #}
+
+{% macro camera_button(upload_url, name, target='', label='Take photo', kind='', size='', icon_only=False, extra_class='') -%}
+<button type="button" class="{% if extra_class %}{{ extra_class }} {% endif %}btn{% if kind %} btn-{{ kind }}{% endif %}{% if size %} btn-{{ size }}{% endif %}{% if icon_only %} btn-icon{% endif %}"
+        data-camera-open data-upload="{{ upload_url }}" data-name="{{ name }}"{% if target %} data-target="{{ target }}"{% endif %}
+        {% if icon_only %}aria-label="{{ label }}: {{ name }}"{% endif %} hidden>
+  {{ icon('camera', 17) }}{% if not icon_only %}<span>{{ label }}</span>{% endif %}
+</button>
+{%- endmacro %}
+
+{% macro camera_dialog(next_url='') -%}
+<dialog class="modal camera-modal" id="camera-dialog" aria-labelledby="camera-title"
+        data-camera-dialog data-csrf="{{ csrf_token() }}"{% if next_url %} data-next="{{ next_url }}"{% endif %}>
+  <div class="modal-head">
+    <h3 id="camera-title">Photo of <span data-camera-name translate="no"></span></h3>
+    <button type="button" class="btn btn-ghost btn-icon btn-sm" data-camera-close aria-label="Close camera">{{ icon('x', 18) }}</button>
+  </div>
+
+  <div class="camera-stage" data-camera-stage>
+    <video class="camera-video" data-camera-video playsinline muted autoplay aria-label="Camera preview"></video>
+    <img class="camera-still" data-camera-still alt="Photo preview" hidden>
+    <div class="camera-guide" data-camera-guide aria-hidden="true"><span class="camera-oval"></span></div>
+    <div class="camera-flash" data-camera-flash aria-hidden="true"></div>
+    <div class="camera-message" data-camera-message hidden>
+      {{ icon('camera', 28) }}
+      <p data-camera-message-text>Starting the camera…</p>
+    </div>
+  </div>
+
+  <p class="camera-tip" data-camera-tip role="status" aria-live="polite">Fit the face inside the oval. Use good light and a plain background.</p>
+
+  {# Step 1: live camera #}
+  <div class="camera-bar" data-camera-step="live">
+    <label class="btn btn-ghost camera-side">
+      {{ icon('image', 18) }}<span>Choose file</span>
+      <input type="file" accept="image/jpeg,image/png,image/webp,image/*" data-camera-file class="sr-only">
+    </label>
+    <button type="button" class="camera-shutter" data-camera-capture aria-label="Take photo" disabled><span></span></button>
+    <button type="button" class="btn btn-ghost camera-side is-unavailable" data-camera-switch disabled aria-hidden="true" tabindex="-1">{{ icon('repeat', 18) }}<span>Switch</span></button>
+  </div>
+
+  {# Step 2: check the photo, confirm consent, save #}
+  <div class="camera-review" data-camera-step="review" hidden>
+    <label class="check camera-consent">
+      <input type="checkbox" data-camera-consent>
+      <span><strong translate="no" data-camera-name></strong> agrees to this photo being kept on their church record.</span>
+    </label>
+    <div class="camera-bar">
+      <button type="button" class="btn" data-camera-retake>{{ icon('refresh-cw', 17) }}<span>Retake</span></button>
+      <button type="button" class="btn btn-primary" data-camera-save disabled>{{ icon('check', 17) }}<span>Save photo</span></button>
+    </div>
+  </div>
+
+  {# Step 3: saved #}
+  <div class="camera-done" data-camera-step="done" hidden>
+    <p class="camera-done-text">{{ icon('check-circle-2', 20) }}<span data-camera-done-text>Photo saved.</span></p>
+    <div class="camera-bar">
+      <button type="button" class="btn" data-camera-close>Close</button>
+      <button type="button" class="btn btn-primary" data-camera-next hidden>{{ icon('arrow-right', 17) }}<span>Next person</span></button>
+    </div>
+  </div>
+</dialog>
+{%- endmacro %}

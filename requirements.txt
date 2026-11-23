@@ -13,6 +13,7 @@ python-dotenv>=1.0,<2
 psycopg[binary]>=3.2,<4
 gunicorn>=23,<28
 qrcode>=7.4,<9
+Pillow>=13,<14        # member and leader photos: resize, rotate, strip location data
 openpyxl>=3.1,<4
 
 # Cloud object storage (STORAGE_BACKEND=s3: AWS S3, Cloudflare R2, Backblaze B2...)

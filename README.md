@@ -3,7 +3,7 @@
 Multi-tenant church management SaaS by **Kayron Global Tech Services**.
 Flask · PostgreSQL · SQLAlchemy · Alembic · Gunicorn · Render.
 
-> **Version 1.1.1 – all twelve stages (0–11) complete, plus the Aurora UI.** See `CHANGELOG.md` for what each stage added,
+> **Version 1.2.0 – all twelve stages (0–11) complete, plus the Aurora UI and the in-app camera.** See `CHANGELOG.md` for what each stage added,
 > `docs/USER_GUIDE.md` for churches and `docs/LAUNCH_CHECKLIST.md` before going live.
 
 ## Quick start (local development)
@@ -31,7 +31,7 @@ pytest                                     # in-memory SQLite (fast)
 TEST_DATABASE_URL=postgresql://user:pass@localhost/churchplus_test pytest   # same suite on PostgreSQL
 ```
 
-340 tests cover every module: the app factory, configuration safety, security headers, roles
+367 tests cover every module: the app factory, configuration safety, security headers, roles
 and permissions, migrations, finance and double-entry rules, privacy rules for prayer,
 counselling and children, messaging, the portal, the website, reports and exports, billing and
 webhooks, the platform console, the installable app, and **cross-church isolation** everywhere.

@@ -1,11 +1,41 @@
 {% extends "layouts/app.html" %}
 {% import "components/_macros.html" as ui with context %}
+{% import "components/_camera.html" as cam with context %}
 {% block title %}{{ staff.display_name }}{% endblock %}
 {% block content %}
 {% call ui.page_header(staff.display_name, staff.position ~ ' · ' ~ staff.staff_number) %}
   {% if staff.member %}{{ ui.button('Member record', 'user-round', href=url_for('members.profile', public_id=staff.member.public_id)) }}{% endif %}
   {% if can('clergy.edit') %}{{ ui.button('Edit', 'edit', 'primary', href=url_for('clergy.edit', public_id=staff.public_id)) }}{% endif %}
 {% endcall %}
+
+<section class="card member-hero mb-4" aria-label="Photo">
+  <div class="photo-slot">
+    {% if photo_url %}
+      <img class="member-photo" id="staff-photo" src="{{ photo_url }}" alt="Photo of {{ staff.display_name }}">
+    {% else %}
+      <span class="member-photo-placeholder" id="staff-photo" translate="no" data-photo-class="member-photo" data-photo-alt="Photo of {{ staff.display_name }}">{{ staff.display_name|initials }}</span>
+    {% endif %}
+    {% if can('clergy.edit') %}{{ cam.camera_button(url_for('clergy.upload_photo', public_id=staff.public_id), staff.display_name, '#staff-photo', 'Take photo', 'primary', 'sm', icon_only=True, extra_class='photo-slot-btn') }}{% endif %}
+  </div>
+  <div class="min-w-0">
+    <h2>Photo</h2>
+    <div class="meta">{{ 'Shown on the clergy & staff list and on their profile.' if photo_url else 'No photo yet. Take one with the camera or upload a passport photo.' }}</div>
+    {% if staff.member %}<p class="meta mt-1">This photo is shared with the linked member record, so it only needs taking once.</p>{% endif %}
+  </div>
+  {% if can('clergy.edit') %}
+  <div class="actions">
+    {{ cam.camera_button(url_for('clergy.upload_photo', public_id=staff.public_id), staff.display_name, '#staff-photo', 'Take photo') }}
+    <form method="post" action="{{ url_for('clergy.upload_photo', public_id=staff.public_id) }}" enctype="multipart/form-data" class="cluster" data-photo-upload>
+      {{ photo_form.csrf_token }}
+      <label class="btn">{{ icon('cloud-upload', 17) }}<span>Upload photo</span>
+        <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" class="sr-only" required data-auto-submit>
+      </label>
+      <noscript><button class="btn btn-sm" type="submit">Save</button></noscript>
+    </form>
+    {% if photo_url %}{{ ui.confirm_button(url_for('clergy.remove_photo', public_id=staff.public_id), 'Remove photo', 'This deletes the photo of ' ~ staff.display_name ~ ' from ChurchPlus.', 'Remove photo', 'trash-2', 'ghost', 'sm', 'Remove photo?') }}{% endif %}
+  </div>
+  {% endif %}
+</section>
 
 <div class="grid grid-stats mb-4">
   {{ ui.stat_card('Category', staff.category.value|capitalize, 'briefcase') }}
@@ -85,4 +115,7 @@
   {% endcall %}
   {% endif %}
 </div>
+{% endblock %}
+{% block scripts %}
+{% if can('clergy.edit') %}{{ cam.camera_dialog() }}<script src="{{ url_for('static', filename='js/camera.js') }}" defer></script>{% endif %}
 {% endblock %}

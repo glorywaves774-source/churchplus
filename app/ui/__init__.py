@@ -217,8 +217,10 @@ def localtime(value, fmt: str = "%d %b %Y %H:%M") -> str:
 
 
 def init_app(app) -> None:
+    from app.services import photos
     app.jinja_env.globals.update(icon=icon, nav_sections=nav_sections, tab_items=tab_items, can=can,
-                                 has_endpoint=_endpoint_exists)
+                                 has_endpoint=_endpoint_exists, member_photo_url=photos.member_photo_url,
+                                 staff_photo_url=photos.staff_photo_url)
     app.jinja_env.filters["initials"] = initials
     app.jinja_env.filters["money"] = money
     app.jinja_env.filters["localtime"] = localtime

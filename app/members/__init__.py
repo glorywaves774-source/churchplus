@@ -6,7 +6,7 @@ import json
 from datetime import date
 
 from flask import (
-    Blueprint, Response, abort, current_app, flash, g, redirect, render_template, request, send_file, session,
+    Blueprint, Response, abort, current_app, flash, g, jsonify, redirect, render_template, request, send_file, session,
     url_for,
 )
 
@@ -15,8 +15,9 @@ from app.members.forms import DocumentForm, FamilyForm, ImportForm, MemberForm, 
 from app.models import (
     Branch, Family, FamilyRole, Gender, MaritalStatus, Member, MemberDocument, MemberStatus,
 )
-from app.services import audit, limits, members as svc, security, storage
+from app.services import audit, limits, members as svc, photos, security, storage
 from app.services.storage import StorageError
+from app.ui import can
 from app.utils.context import church_required, permission_required
 
 bp = Blueprint("members", __name__)
@@ -188,27 +189,50 @@ def delete(public_id: str):
 # --------------------------------------------------------------------------- #
 # Photo
 # --------------------------------------------------------------------------- #
+def _wants_json() -> bool:
+    return request.accept_mimetypes.best == "application/json"
+
+
+def _photo_reply(ok: bool, message: str, back: str, photo_url: str | None = None, status: int = 200):
+    """The camera expects JSON; the plain upload form expects a page."""
+    if _wants_json():
+        return jsonify(ok=ok, message=message, photo_url=photo_url), (status if not ok else 200)
+    flash(message, "success" if ok else "danger")
+    return redirect(back)
+
+
 @bp.post("/members/<public_id>/photo")
 @permission_required("members.edit")
 def upload_photo(public_id: str):
     member = svc.get_member_or_404(public_id)
+    back = request.form.get("next") if (request.form.get("next") or "").startswith("/") and not \
+        (request.form.get("next") or "").startswith("//") else url_for("members.profile", public_id=public_id)
     form = PhotoForm()
-    if form.validate_on_submit():
-        f = form.photo.data
-        try:
-            stored = storage.save(f, filename=f.filename, kind="image", category="member-photos", content_type=f.mimetype)
-        except StorageError as e:
-            flash(str(e), "danger")
-        else:
-            old, member.photo_key = member.photo_key, stored.key
-            audit.record("member.photo_updated", entity=member, actor=g.user, name=member.display_name)
-            db.session.commit()
-            if old:
-                storage.delete(old)
-            flash("Photo updated.", "success")
-    else:
-        for e in form.photo.errors:
-            flash(e, "danger")
+    if not form.validate_on_submit():
+        errors = list(form.photo.errors) or [e for errs in form.errors.values() for e in errs] or ["Choose a photo."]
+        return _photo_reply(False, errors[0], back, status=400)
+    try:
+        old = photos.replace(member, form.photo.data, category="member-photos")
+    except StorageError as e:
+        return _photo_reply(False, str(e), back, status=400)
+    audit.record("member.photo_updated", entity=member, actor=g.user, name=member.display_name,
+                 source="camera" if request.form.get("source") == "camera" else "upload")
+    db.session.commit()
+    if old:
+        storage.delete(old)
+    return _photo_reply(True, f"Photo of {member.display_name} saved.", back, photos.member_photo_url(member))
+
+
+@bp.post("/members/<public_id>/photo/remove")
+@permission_required("members.edit")
+def remove_photo(public_id: str):
+    member = svc.get_member_or_404(public_id)
+    old, member.photo_key = member.photo_key, None
+    if old:
+        audit.record("member.photo_removed", entity=member, actor=g.user, name=member.display_name)
+        db.session.commit()
+        storage.delete(old)
+        flash("Photo removed.", "success")
     return redirect(url_for("members.profile", public_id=public_id))
 
 
@@ -218,11 +242,24 @@ def photo(public_id: str):
     member = svc.get_member_or_404(public_id)
     if not member.photo_key:
         abort(404)
-    ext = member.photo_key.rsplit(".", 1)[-1]
-    resp = send_file(storage.open_file(member.photo_key),
-                     mimetype={"png": "image/png", "webp": "image/webp"}.get(ext, "image/jpeg"), max_age=300)
-    resp.headers["Cache-Control"] = "private, max-age=300"
-    return resp
+    return photos.send(member.photo_key)
+
+
+# --------------------------------------------------------------------------- #
+# Photo day: work through everyone who still needs a photo
+# --------------------------------------------------------------------------- #
+@bp.get("/members/photos")
+@permission_required("members.edit")
+def photo_day():
+    people = photos.photo_day_people(request.args)
+    page = people.paginate(page=request.args.get("page", 1, type=int), per_page=24, error_out=False)
+    params = {k: v for k, v in request.args.items() if k != "page" and v}
+    return render_template("members/photo_day.html", page=page, params=params, counts=photos.photo_day_counts(),
+                           branches=_branch_choices(blank=False),
+                           roles=photos.leader_roles([m.id for m in page.items]),
+                           staff_only=photos.unlinked_staff(request.args)
+                           if page.page == 1 and can("clergy.edit") else [],
+                           breadcrumbs=[("People", None), ("Members", url_for("members.index")), ("Photo day", None)])
 
 
 # --------------------------------------------------------------------------- #

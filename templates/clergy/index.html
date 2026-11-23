@@ -3,6 +3,7 @@
 {% block title %}Clergy and staff{% endblock %}
 {% block content %}
 {% call ui.page_header('Clergy, staff and volunteers') %}
+  {% if can('members.edit') %}{{ ui.button('Photo day', 'camera', href=url_for('members.photo_day', who='leaders')) }}{% endif %}
   {{ ui.button('Leave' ~ (' (' ~ pending ~ ')' if pending else ''), 'calendar-days', href=url_for('clergy.leave')) }}
   {% if can('clergy.create') %}{{ ui.button('Add person', 'user-plus', 'primary', href=url_for('clergy.create')) }}{% endif %}
 {% endcall %}
@@ -24,7 +25,7 @@
     <tbody>
       {% for s in rows %}
       <tr>
-        <td>{{ ui.person(s.display_name, s.department.name if s.department else None, href=url_for('clergy.profile', public_id=s.public_id)) }}</td>
+        <td>{{ ui.person(s.display_name, s.department.name if s.department else None, src=staff_photo_url(s), href=url_for('clergy.profile', public_id=s.public_id)) }}</td>
         <td class="wrap">{{ s.position }}</td>
         <td>{{ ui.badge(s.category.value, {'clergy': 'accent', 'staff': 'info', 'volunteer': 'gold'}[s.category.value]) }}</td>
         <td class="nowrap" translate="no">{{ s.staff_number }}</td>
